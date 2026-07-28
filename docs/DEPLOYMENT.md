@@ -14,6 +14,19 @@ Configura en Development, Preview y Production:
 
 No configures `SEED_DEFAULT_PASSWORD` ni `ALLOW_TEST_SEED` en producción normal.
 
+## Recuperación del superadministrador
+
+Si el correo interno no tiene buzón, restablece el PIN desde una terminal local
+con las variables de servidor cargadas. El valor debe suministrarse mediante
+`SUPERADMIN_PIN` y nunca guardarse en `.env`, Git o Vercel:
+
+```bash
+read -s "SUPERADMIN_PIN?Nuevo PIN (6 dígitos): "
+export SUPERADMIN_PIN
+npm run admin:reset-pin
+unset SUPERADMIN_PIN
+```
+
 ## Secuencia
 
 1. Fusiona mediante pull request con `npm run check` y `npm run build`.

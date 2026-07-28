@@ -16,7 +16,8 @@
     "db:generate": "prisma generate",
     "db:status": "prisma migrate status --config prisma.migrate.config.ts",
     "db:deploy": "prisma migrate deploy --config prisma.migrate.config.ts",
-    "db:seed": "node prisma/seed.mjs"
+    "db:seed": "node prisma/seed.mjs",
+    "admin:reset-pin": "node scripts/reset-superadmin-pin.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.50.1",
