@@ -192,6 +192,54 @@ export async function updateInstitutionUser(input: {
   return { success: true };
 }
 
+export async function deleteInstitutionUser(institutionId: string, profileId: string) {
+  const superAdmin = await requireSuperAdmin();
+  if (profileId === superAdmin.id) return { success: false, error: "No puedes eliminar tu propio acceso." };
+  const membership = await prisma.institutionMembership.findFirst({
+    where: { institutionId, profileId, deletedAt: null },
+    include: { profile: { select: { isSuperAdmin: true, username: true } } },
+  });
+  if (!membership) return { success: false, error: "El miembro no existe en esta institución." };
+  if (membership.profile.isSuperAdmin) return { success: false, error: "No puedes eliminar un superadministrador." };
+
+  const otherActiveMemberships = await prisma.institutionMembership.count({
+    where: {
+      profileId,
+      institutionId: { not: institutionId },
+      status: "ACTIVE",
+      deletedAt: null,
+      institution: { active: true, deletedAt: null },
+    },
+  });
+  await prisma.$transaction([
+    prisma.institutionMembership.update({
+      where: { institutionId_profileId: { institutionId, profileId } },
+      data: { status: "SUSPENDED", deletedAt: new Date() },
+    }),
+    ...(otherActiveMemberships === 0 ? [prisma.profile.update({
+      where: { id: profileId },
+      data: { active: false },
+    })] : []),
+    prisma.activityLog.create({
+      data: {
+        institutionId,
+        actorId: superAdmin.id,
+        action: "USER_REMOVED_BY_SUPERADMIN",
+        entityType: "Profile",
+        entityId: profileId,
+        metadata: {
+          username: membership.profile.username,
+          profileDeactivated: otherActiveMemberships === 0,
+          deletionType: "SOFT_DELETE",
+        },
+      },
+    }),
+  ]);
+  revalidatePath("/superadmin");
+  revalidatePath(`/superadmin/institutions/${institutionId}`);
+  return { success: true };
+}
+
 export async function createInstitution(formData: FormData) {
   const superAdmin = await requireSuperAdmin();
   const name = String(formData.get("name") || "").trim().slice(0, 200);

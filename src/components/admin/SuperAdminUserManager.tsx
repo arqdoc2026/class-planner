@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createInstitutionUser, updateInstitutionUser } from "../../lib/actions/platform-actions";
+import { createInstitutionUser, deleteInstitutionUser, updateInstitutionUser } from "../../lib/actions/platform-actions";
 
 type InstitutionOption = {
   id: string;
@@ -66,6 +66,18 @@ export default function SuperAdminUserManager({ institutions }: { institutions: 
     }
   }
 
+  async function remove(institutionId: string, member: InstitutionOption["members"][number]) {
+    if (!window.confirm(`¿Eliminar a ${member.fullName} de esta institución? Sus planeaciones e historial se conservarán.`)) return;
+    setPending(true);
+    setEditingId(member.profileId);
+    setMessage(null);
+    const result = await deleteInstitutionUser(institutionId, member.profileId);
+    setMessage({ ok: result.success, text: result.success ? "Perfil retirado de la institución." : result.error || "No se pudo eliminar." });
+    setPending(false);
+    setEditingId(null);
+    if (result.success) router.refresh();
+  }
+
   return (
     <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900 p-5">
       <form id="superadmin-user-form" action={create} className="space-y-4">
@@ -107,7 +119,7 @@ export default function SuperAdminUserManager({ institutions }: { institutions: 
             <h3 className="bg-slate-950 px-4 py-3 font-bold">{institution.name}</h3>
             <div className="divide-y divide-slate-800">
               {institution.members.map((member) => (
-                <form key={member.id} action={update} className="grid gap-2 p-4 md:grid-cols-7">
+                <form key={member.id} action={update} className="grid gap-2 p-4 md:grid-cols-8">
                   <input type="hidden" name="institutionId" value={institution.id} />
                   <input type="hidden" name="profileId" value={member.profileId} />
                   <input name="fullName" required defaultValue={member.fullName} aria-label={`Nombre de ${member.username}`} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />
@@ -127,6 +139,9 @@ export default function SuperAdminUserManager({ institutions }: { institutions: 
                   <input name="newPassword" type="password" minLength={6} maxLength={6} pattern="[0-9]{6}" inputMode="numeric" placeholder="Nuevo PIN (opcional)" aria-label={`Nuevo PIN para ${member.username}`} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />
                   <button disabled={pending || member.isSuperAdmin} className="rounded-lg bg-slate-700 px-3 py-2 font-bold text-white disabled:opacity-40">
                     {editingId === member.profileId ? "Guardando…" : member.isSuperAdmin ? "Superadmin" : "Guardar"}
+                  </button>
+                  <button type="button" disabled={pending || member.isSuperAdmin} onClick={() => remove(institution.id, member)} className="rounded-lg border border-red-800 px-3 py-2 font-bold text-red-300 hover:bg-red-950 disabled:opacity-40">
+                    Eliminar
                   </button>
                 </form>
               ))}
