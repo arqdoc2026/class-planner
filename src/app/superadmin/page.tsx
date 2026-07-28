@@ -18,7 +18,20 @@ export default async function SuperAdminPage() {
           <input name="slug" required placeholder="identificador-url" className="rounded-lg border px-3 py-2" />
           <button className="rounded-lg bg-slate-950 px-4 py-2 font-bold text-white">Crear institución</button>
         </form>
-        <SuperAdminUserManager institutions={data.institutions.map(({ id, name, active }) => ({ id, name, active }))} />
+        <SuperAdminUserManager institutions={data.institutions.map(({ id, name, active, memberships }) => ({
+          id,
+          name,
+          active,
+          members: memberships.map((membership) => ({
+            id: membership.id,
+            profileId: membership.profileId,
+            fullName: membership.profile.fullName,
+            username: membership.profile.username,
+            role: membership.role,
+            active: membership.status === "ACTIVE",
+            isSuperAdmin: membership.profile.isSuperAdmin,
+          })),
+        }))} />
         <div className="overflow-hidden rounded-2xl bg-white text-slate-950">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-100"><tr><th className="p-4">Institución</th><th className="p-4">Miembros</th><th className="p-4">Planeaciones</th><th className="p-4">Estado</th></tr></thead>

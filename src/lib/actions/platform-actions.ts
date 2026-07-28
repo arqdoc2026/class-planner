@@ -13,7 +13,7 @@ export async function getPlatformOverview() {
       include: {
         memberships: {
           where: { deletedAt: null },
-          include: { profile: { select: { id: true, fullName: true, username: true } } },
+          include: { profile: { select: { id: true, fullName: true, username: true, email: true, isSuperAdmin: true } } },
           orderBy: { createdAt: "desc" },
         },
         _count: { select: { memberships: true, plans: true } },
@@ -43,8 +43,8 @@ export async function createInstitutionUser(input: {
   if (!institutionId || fullName.length < 2 || !/^[a-z0-9._-]{3,30}$/.test(username)) {
     return { success: false, error: "Institución, nombre o usuario no válido." };
   }
-  if (!allowedRoles.includes(input.role) || temporaryPassword.length < 12) {
-    return { success: false, error: "Selecciona un rol y usa una contraseña temporal de al menos 12 caracteres." };
+  if (!allowedRoles.includes(input.role) || !/^\d{6}$/.test(temporaryPassword)) {
+    return { success: false, error: "Selecciona un rol y usa un PIN temporal de exactamente 6 dígitos." };
   }
   const [institution, existing] = await Promise.all([
     prisma.institution.findFirst({ where: { id: institutionId, active: true, deletedAt: null }, select: { id: true } }),
@@ -98,6 +98,87 @@ export async function createInstitutionUser(input: {
     return { success: false, error: "No se pudo asignar el usuario a la institución." };
   }
 
+  revalidatePath("/superadmin");
+  return { success: true };
+}
+
+export async function updateInstitutionUser(input: {
+  institutionId: string;
+  profileId: string;
+  fullName: string;
+  username: string;
+  role: InstitutionRole;
+  active: boolean;
+  newPassword?: string;
+}) {
+  const superAdmin = await requireSuperAdmin();
+  const fullName = input.fullName.trim().slice(0, 200);
+  const username = input.username.trim().toLowerCase();
+  const newPassword = String(input.newPassword || "");
+  const allowedRoles: InstitutionRole[] = ["INSTITUTION_ADMIN", "COORDINATOR", "TEACHER", "VIEWER"];
+  if (fullName.length < 2 || !/^[a-z0-9._-]{3,30}$/.test(username) || !allowedRoles.includes(input.role)) {
+    return { success: false, error: "Nombre, usuario o rol no válido." };
+  }
+  if (newPassword && !/^\d{6}$/.test(newPassword)) {
+    return { success: false, error: "El nuevo PIN debe contener exactamente 6 dígitos." };
+  }
+  const membership = await prisma.institutionMembership.findFirst({
+    where: { institutionId: input.institutionId, profileId: input.profileId, deletedAt: null },
+    include: { profile: { select: { username: true, fullName: true, email: true, isSuperAdmin: true } } },
+  });
+  if (!membership) return { success: false, error: "El miembro no pertenece a esa institución." };
+  if (membership.profile.isSuperAdmin && membership.profileId !== superAdmin.id) {
+    return { success: false, error: "No puedes modificar otro superadministrador desde esta sección." };
+  }
+  const duplicate = await prisma.profile.findFirst({
+    where: { username, id: { not: input.profileId } },
+    select: { id: true },
+  });
+  if (duplicate) return { success: false, error: "Ese nombre de usuario ya está en uso." };
+
+  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceKey) return { success: false, error: "Faltan las credenciales administrativas de Supabase." };
+  const supabase = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const email = `${username}@users.gymplan.app`;
+  const authUpdate = await supabase.auth.admin.updateUserById(input.profileId, {
+    email,
+    email_confirm: true,
+    user_metadata: { full_name: fullName, username },
+    ...(newPassword ? { password: newPassword } : {}),
+  });
+  if (authUpdate.error) return { success: false, error: authUpdate.error.message };
+
+  try {
+    await prisma.$transaction([
+      prisma.profile.update({
+        where: { id: input.profileId },
+        data: { fullName, username, email },
+      }),
+      prisma.institutionMembership.update({
+        where: { institutionId_profileId: { institutionId: input.institutionId, profileId: input.profileId } },
+        data: { role: input.role, status: input.active ? "ACTIVE" : "SUSPENDED" },
+      }),
+      prisma.activityLog.create({
+        data: {
+          institutionId: input.institutionId,
+          actorId: superAdmin.id,
+          action: "USER_UPDATED_BY_SUPERADMIN",
+          entityType: "Profile",
+          entityId: input.profileId,
+          metadata: { username, role: input.role, active: input.active, passwordReset: Boolean(newPassword) },
+        },
+      }),
+    ]);
+  } catch (databaseError) {
+    await supabase.auth.admin.updateUserById(input.profileId, {
+      email: membership.profile.email,
+      email_confirm: true,
+      user_metadata: { full_name: membership.profile.fullName, username: membership.profile.username },
+    }).catch(() => undefined);
+    console.error("Error actualizando miembro institucional:", databaseError);
+    return { success: false, error: "No se pudo guardar el perfil institucional." };
+  }
   revalidatePath("/superadmin");
   return { success: true };
 }
