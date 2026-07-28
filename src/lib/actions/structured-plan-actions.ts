@@ -37,14 +37,17 @@ export async function createStructuredPlan(formData: FormData) {
     academicPeriodId: clean(formData.get("academicPeriodId"), 100) || null,
   };
   const [campus, area, subject, grade, group, year, period] = await Promise.all([
-    catalogIds.campusId ? prisma.campus.findFirst({ where: { id: catalogIds.campusId, institutionId: context.institutionId } }) : null,
-    catalogIds.academicAreaId ? prisma.academicArea.findFirst({ where: { id: catalogIds.academicAreaId, institutionId: context.institutionId } }) : null,
-    catalogIds.academicSubjectId ? prisma.academicSubject.findFirst({ where: { id: catalogIds.academicSubjectId, institutionId: context.institutionId } }) : null,
-    catalogIds.academicGradeId ? prisma.academicGrade.findFirst({ where: { id: catalogIds.academicGradeId, institutionId: context.institutionId } }) : null,
-    catalogIds.courseGroupId ? prisma.courseGroup.findFirst({ where: { id: catalogIds.courseGroupId, institutionId: context.institutionId } }) : null,
-    catalogIds.academicYearId ? prisma.academicYear.findFirst({ where: { id: catalogIds.academicYearId, institutionId: context.institutionId } }) : null,
-    catalogIds.academicPeriodId ? prisma.academicPeriod.findFirst({ where: { id: catalogIds.academicPeriodId, academicYear: { institutionId: context.institutionId } } }) : null,
+    catalogIds.campusId ? prisma.campus.findFirst({ where: { id: catalogIds.campusId, institutionId: context.institutionId, active: true } }) : null,
+    catalogIds.academicAreaId ? prisma.academicArea.findFirst({ where: { id: catalogIds.academicAreaId, institutionId: context.institutionId, active: true } }) : null,
+    catalogIds.academicSubjectId ? prisma.academicSubject.findFirst({ where: { id: catalogIds.academicSubjectId, institutionId: context.institutionId, active: true } }) : null,
+    catalogIds.academicGradeId ? prisma.academicGrade.findFirst({ where: { id: catalogIds.academicGradeId, institutionId: context.institutionId, active: true } }) : null,
+    catalogIds.courseGroupId ? prisma.courseGroup.findFirst({ where: { id: catalogIds.courseGroupId, institutionId: context.institutionId, active: true } }) : null,
+    catalogIds.academicYearId ? prisma.academicYear.findFirst({ where: { id: catalogIds.academicYearId, institutionId: context.institutionId, active: true } }) : null,
+    catalogIds.academicPeriodId ? prisma.academicPeriod.findFirst({ where: { id: catalogIds.academicPeriodId, academicYear: { institutionId: context.institutionId, active: true } } }) : null,
   ]);
+  if (!campus || !area || !subject || subject.areaId !== area.id || !grade || !group || group.gradeId !== grade.id || !year || !period || period.academicYearId !== year.id) {
+    return { success: false, error: "Completa la sede, área, asignatura, grado, grupo, año lectivo y periodo con opciones válidas." };
+  }
   const plan = await prisma.classPlan.create({
     data: {
       institutionId: context.institutionId,
@@ -53,13 +56,13 @@ export async function createStructuredPlan(formData: FormData) {
       area: area?.name || "",
       subject: subject?.name || "",
       grade: grade?.name || "",
-      campusId: campus?.id,
-      academicAreaId: area?.id,
-      academicSubjectId: subject?.id,
-      academicGradeId: grade?.id,
-      courseGroupId: group && grade && group.gradeId === grade.id ? group.id : null,
-      academicYearId: year?.id,
-      academicPeriodId: period && year && period.academicYearId === year.id ? period.id : null,
+      campusId: campus.id,
+      academicAreaId: area.id,
+      academicSubjectId: subject.id,
+      academicGradeId: grade.id,
+      courseGroupId: group.id,
+      academicYearId: year.id,
+      academicPeriodId: period.id,
       teacherName: context.profile.fullName,
       status: "DRAFT",
       formatVersionId: formatVersion?.id,

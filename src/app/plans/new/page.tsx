@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { createStructuredPlan } from "../../../lib/actions/structured-plan-actions";
 import { requireInstitutionContext } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
 import AppNavigation from "../../../components/navigation/AppNavigation";
+import PlanCreationForm from "../../../components/plans/PlanCreationForm";
 
 export default async function NewPlanPage() {
   const context = await requireInstitutionContext();
@@ -12,6 +12,15 @@ export default async function NewPlanPage() {
     prisma.academicGrade.findMany({ where: { institutionId: context.institutionId, active: true }, include: { groups: { where: { active: true }, orderBy: { name: "asc" } } }, orderBy: [{ level: "asc" }, { name: "asc" }] }),
     prisma.academicYear.findMany({ where: { institutionId: context.institutionId, active: true }, include: { periods: { orderBy: { sequence: "asc" } } }, orderBy: { startDate: "desc" } }),
   ]);
+  const missing = [
+    !campuses.length && "sedes",
+    !areas.length && "áreas",
+    !areas.some((area) => area.subjects.length) && "asignaturas",
+    !grades.length && "grados",
+    !grades.some((grade) => grade.groups.length) && "grupos",
+    !years.length && "años lectivos",
+    !years.some((year) => year.periods.length) && "periodos",
+  ].filter((item): item is string => Boolean(item));
   return (
     <div className="min-h-screen bg-slate-100">
       <AppNavigation role={context.role} institutionName={context.institution.name} userName={context.profile.fullName} isSuperAdmin={context.profile.isSuperAdmin} />
@@ -22,29 +31,23 @@ export default async function NewPlanPage() {
           <h1 className="text-3xl font-black">Información general</h1>
           <p className="mt-2 text-sm text-slate-500">Se utilizará la versión vigente del formato institucional y quedará congelada en la planeación.</p>
         </div>
-        <form action={async (formData) => { "use server"; await createStructuredPlan(formData); }} className="space-y-4">
-          <Field name="unitTitle" label="Título de la unidad" required />
-          <Select name="campusId" label="Sede" options={campuses.map((item) => ({ id: item.id, label: item.name }))} />
-          <Select name="academicAreaId" label="Área" options={areas.map((item) => ({ id: item.id, label: item.name }))} />
-          <Select name="academicSubjectId" label="Asignatura" options={areas.flatMap((area) => area.subjects.map((item) => ({ id: item.id, label: `${area.name} · ${item.name}` })))} />
-          <Select name="academicGradeId" label="Grado" options={grades.map((item) => ({ id: item.id, label: item.name }))} />
-          <Select name="courseGroupId" label="Grupo" options={grades.flatMap((grade) => grade.groups.map((item) => ({ id: item.id, label: `${grade.name} · ${item.name}` })))} />
-          <Select name="academicYearId" label="Año lectivo" options={years.map((item) => ({ id: item.id, label: item.name }))} />
-          <Select name="academicPeriodId" label="Periodo" options={years.flatMap((year) => year.periods.map((item) => ({ id: item.id, label: `${year.name} · ${item.name}` })))} />
-          <div className="flex gap-3">
-            <button className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white">Crear y continuar</button>
-            <Link href="/overview" className="rounded-xl bg-slate-100 px-6 py-3 font-bold text-slate-700">Cancelar</Link>
+        {missing.length ? (
+          <div className="space-y-4 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-950">
+            <div><h2 className="font-black">Falta configurar la institución</h2><p className="mt-1 text-sm">No se puede crear una planeación hasta registrar: {missing.join(", ")}.</p></div>
+            {context.role === "INSTITUTION_ADMIN"
+              ? <Link href="/admin/institution" className="inline-block rounded-xl bg-amber-900 px-5 py-3 font-bold text-white">Configurar datos institucionales</Link>
+              : <p className="text-sm font-semibold">Solicita al administrador institucional que complete estos catálogos.</p>}
+            <div><Link href="/overview" className="text-sm font-bold underline">Volver al panel</Link></div>
           </div>
-        </form>
+        ) : (
+          <PlanCreationForm
+            campuses={campuses.map(({ id, name }) => ({ id, name }))}
+            areas={areas.map(({ id, name, subjects }) => ({ id, name, subjects: subjects.map(({ id: subjectId, name: subjectName }) => ({ id: subjectId, name: subjectName })) }))}
+            grades={grades.map(({ id, name, groups }) => ({ id, name, groups: groups.map(({ id: groupId, name: groupName }) => ({ id: groupId, name: groupName })) }))}
+            years={years.map(({ id, name, periods }) => ({ id, name, periods: periods.map(({ id: periodId, name: periodName }) => ({ id: periodId, name: periodName })) }))}
+          />
+        )}
       </div>
     </main></div>
   );
-}
-
-function Select({ name, label, options }: { name: string; label: string; options: Array<{ id: string; label: string }> }) {
-  return <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">{label}</span><select name={name} className="w-full rounded-xl border border-slate-300 px-4 py-3"><option value="">Sin seleccionar</option>{options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select></label>;
-}
-
-function Field({ name, label, required = false }: { name: string; label: string; required?: boolean }) {
-  return <label className="block"><span className="mb-1 block text-sm font-bold text-slate-700">{label}</span><input name={name} required={required} className="w-full rounded-xl border border-slate-300 px-4 py-3" /></label>;
 }
