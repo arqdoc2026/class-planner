@@ -4,6 +4,13 @@ import { createClient } from "./supabase/server";
 
 export type InstitutionRole = "INSTITUTION_ADMIN" | "COORDINATOR" | "TEACHER" | "VIEWER";
 
+export function roleHomePath(role: InstitutionRole, isSuperAdmin = false) {
+  if (isSuperAdmin) return "/superadmin";
+  if (role === "INSTITUTION_ADMIN" || role === "COORDINATOR") return "/overview";
+  if (role === "TEACHER") return "/dashboard";
+  return "/plans";
+}
+
 export async function getCurrentProfile() {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getClaims();
@@ -40,13 +47,13 @@ export async function getCurrentInstitutionContext() {
 
 export async function requireProfile() {
   const profile = await getCurrentProfile();
-  if (!profile || !profile.active) redirect("/auth/login");
+  if (!profile || !profile.active) redirect("/");
   return profile;
 }
 
 export async function requireInstitutionContext() {
   const context = await getCurrentInstitutionContext();
-  if (!context) redirect("/auth/login");
+  if (!context) redirect("/");
   return context;
 }
 

@@ -23,14 +23,14 @@ export async function updateSession(request: NextRequest) {
 
   if (!isAuthenticated && !isPublicRoute) {
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/auth/login";
+    loginUrl.pathname = "/";
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   if (isAuthenticated && isAuthRoute) {
     const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
+    dashboardUrl.pathname = "/";
     dashboardUrl.search = "";
     return NextResponse.redirect(dashboardUrl);
   }

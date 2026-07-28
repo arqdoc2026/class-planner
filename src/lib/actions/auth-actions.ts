@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "../supabase/server";
 import { prisma } from "../prisma";
 import { createHash } from "node:crypto";
+import { roleHomePath, type InstitutionRole } from "../auth";
 
 export type AuthState = { error?: string; message?: string } | undefined;
 
@@ -20,12 +21,21 @@ export async function loginAction(_state: AuthState, formData: FormData): Promis
   const password = String(formData.get("password") || "");
   if (!/^[a-z0-9._-]{3,30}$/.test(username) || password.length < 6) return { error: "Ingresa un usuario y una contraseña válidos." };
 
-  const profile = await prisma.profile.findUnique({ where: { username }, select: { email: true, active: true } });
+  const profile = await prisma.profile.findUnique({ where: { username }, select: { id: true, email: true, active: true, isSuperAdmin: true } });
   if (!profile || !profile.active) return { error: "Usuario o contraseña incorrectos." };
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email: profile.email, password });
   if (error) return { error: "Usuario o contraseña incorrectos." };
-  redirect("/dashboard");
+  const membership = await prisma.institutionMembership.findFirst({
+    where: { profileId: profile.id, status: "ACTIVE", deletedAt: null, institution: { active: true, deletedAt: null } },
+    select: { role: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!membership) {
+    await supabase.auth.signOut();
+    return { error: "Tu usuario no tiene una membresía institucional activa." };
+  }
+  redirect(roleHomePath(membership.role as InstitutionRole, profile.isSuperAdmin));
 }
 
 export async function signupAction(_state: AuthState, formData: FormData): Promise<AuthState> {
@@ -71,11 +81,16 @@ export async function signupAction(_state: AuthState, formData: FormData): Promi
       prisma.institutionInvitation.update({ where: { id: invitation.id }, data: { acceptedAt: new Date() } }),
     ]);
   }
-  redirect("/dashboard");
+  const membership = data.user ? await prisma.institutionMembership.findFirst({
+    where: { profileId: data.user.id, status: "ACTIVE", deletedAt: null },
+    select: { role: true },
+    orderBy: { createdAt: "asc" },
+  }) : null;
+  redirect(membership ? roleHomePath(membership.role as InstitutionRole) : "/");
 }
 
 export async function logoutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
-  redirect("/auth/login");
+  redirect("/");
 }

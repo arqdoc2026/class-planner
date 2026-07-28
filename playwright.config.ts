@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const externalServer = process.env.PLAYWRIGHT_EXTERNAL_SERVER;
+
 export default defineConfig({
   testDir: "./tests/e2e",
   fullyParallel: true,
@@ -7,12 +9,12 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: "list",
   use: {
-    baseURL: "http://127.0.0.1:3100",
+    baseURL: externalServer || "http://127.0.0.1:3100",
     trace: "on-first-retry",
   },
-  webServer: {
+  webServer: externalServer ? undefined : {
     command: "npm run dev -- --hostname 127.0.0.1 --port 3100",
-    url: "http://127.0.0.1:3100/auth/login",
+    url: "http://127.0.0.1:3100/",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
