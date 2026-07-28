@@ -11,15 +11,16 @@ if (!/^\d{6}$/.test(pin)) {
 const databaseUrl = process.env.DIRECT_URL;
 const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-if (!databaseUrl || !supabaseUrl || !serviceKey) {
-  console.error("Faltan DIRECT_URL, SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en .env.");
+const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+if (!databaseUrl || !supabaseUrl || !serviceKey || !publishableKey) {
+  console.error("Faltan DIRECT_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY o NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY en .env.");
   process.exit(1);
 }
 
 const pool = new pg.Pool({ connectionString: databaseUrl });
 try {
   const result = await pool.query(`
-    SELECT "id", "username"
+    SELECT "id", "username", "email"
     FROM public.profiles
     WHERE "isSuperAdmin" = TRUE AND "active" = TRUE
     ORDER BY "createdAt" ASC
@@ -41,7 +42,15 @@ try {
     WHERE "id" = $2
   `, [normalizedUsername, profile.id]);
 
-  console.log(`PIN actualizado correctamente para el usuario: ${normalizedUsername}`);
+  const verifier = createClient(supabaseUrl, publishableKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const verification = await verifier.auth.signInWithPassword({ email: profile.email, password: pin });
+  if (verification.error) {
+    throw new Error(`El PIN fue enviado a Auth, pero la prueba de ingreso falló: ${verification.error.message}`);
+  }
+  await verifier.auth.signOut();
+  console.log(`PIN actualizado y acceso verificado para el usuario: ${normalizedUsername}`);
 } catch (error) {
   console.error("No se pudo actualizar el PIN:", error instanceof Error ? error.message : error);
   process.exitCode = 1;
