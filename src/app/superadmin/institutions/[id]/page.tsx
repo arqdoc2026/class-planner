@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SuperAdminUserManager from "../../../../components/admin/SuperAdminUserManager";
+import SuperAdminCatalogManager from "../../../../components/admin/SuperAdminCatalogManager";
 import LogoutButton from "../../../../components/auth/LogoutButton";
 import { getPlatformInstitution } from "../../../../lib/actions/platform-actions";
 import { requireSuperAdmin } from "../../../../lib/auth";
@@ -55,6 +56,15 @@ export default async function InstitutionProfilePage({ params }: { params: Promi
             <p><span className="block text-xs uppercase text-slate-500">Sedes</span>{institution.campuses.map((campus) => campus.name).join(", ") || "Sin sedes"}</p>
           </div>
         </section>
+        <SuperAdminCatalogManager
+          institutionId={institution.id}
+          data={{
+            campuses: institution.campuses.map(({ id, name }) => ({ id, name })),
+            areas: institution.areas.map(({ id, name, subjects }) => ({ id, name, subjects: subjects.map(({ id: subjectId, name: subjectName }) => ({ id: subjectId, name: subjectName })) })),
+            grades: institution.grades.map(({ id, name, groups }) => ({ id, name, groups: groups.map(({ id: groupId, name: groupName }) => ({ id: groupId, name: groupName })) })),
+            years: institution.years.map(({ id, name, periods }) => ({ id, name, periods: periods.map(({ id: periodId, name: periodName }) => ({ id: periodId, name: periodName })) })),
+          }}
+        />
         <SuperAdminUserManager institutions={[managerInstitution]} currentUserId={superAdmin.id} />
       </div>
     </main>

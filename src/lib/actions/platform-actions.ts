@@ -27,6 +27,9 @@ export async function getPlatformInstitution(institutionId: string) {
       where: { id: institutionId, deletedAt: null },
       include: {
         campuses: { orderBy: { name: "asc" } },
+        areas: { include: { subjects: { orderBy: { name: "asc" } } }, orderBy: { name: "asc" } },
+        grades: { include: { groups: { orderBy: { name: "asc" } } }, orderBy: [{ level: "asc" }, { name: "asc" }] },
+        years: { include: { periods: { orderBy: { sequence: "asc" } } }, orderBy: { startDate: "desc" } },
         memberships: {
           where: { deletedAt: null },
           include: { profile: { select: { id: true, fullName: true, username: true, email: true, isSuperAdmin: true } } },
@@ -42,6 +45,78 @@ export async function getPlatformInstitution(institutionId: string) {
     }),
   ]);
   return institution ? { ...institution, removedMemberships } : null;
+}
+
+type PlatformCatalogKind = "campus" | "area" | "subject" | "grade" | "group" | "year" | "period";
+
+export async function createPlatformCatalogEntry(input: {
+  institutionId: string;
+  kind: PlatformCatalogKind;
+  values: Record<string, string>;
+}) {
+  const superAdmin = await requireSuperAdmin();
+  const institution = await prisma.institution.findFirst({
+    where: { id: input.institutionId, deletedAt: null },
+    select: { id: true, active: true },
+  });
+  if (!institution) return { success: false, error: "La institución no existe." };
+  if (!institution.active) return { success: false, error: "Activa la institución antes de configurar sus catálogos." };
+  const text = (key: string, max = 200) => String(input.values[key] || "").trim().slice(0, max);
+  const name = text("name");
+  if (name.length < 1) return { success: false, error: "Escribe un nombre válido." };
+
+  try {
+    let entityId = "";
+    if (input.kind === "campus") {
+      entityId = (await prisma.campus.create({ data: { institutionId: institution.id, name, code: text("code", 50) || null } })).id;
+    } else if (input.kind === "area") {
+      entityId = (await prisma.academicArea.create({ data: { institutionId: institution.id, name, code: text("code", 50) || null } })).id;
+    } else if (input.kind === "subject") {
+      const area = await prisma.academicArea.findFirst({ where: { id: text("parentId", 100), institutionId: institution.id, active: true }, select: { id: true } });
+      if (!area) return { success: false, error: "Selecciona un área válida." };
+      entityId = (await prisma.academicSubject.create({ data: { institutionId: institution.id, areaId: area.id, name, code: text("code", 50) || null } })).id;
+    } else if (input.kind === "grade") {
+      const level = Number(input.values.level);
+      entityId = (await prisma.academicGrade.create({ data: { institutionId: institution.id, name, level: Number.isInteger(level) ? level : null } })).id;
+    } else if (input.kind === "group") {
+      const grade = await prisma.academicGrade.findFirst({ where: { id: text("parentId", 100), institutionId: institution.id, active: true }, select: { id: true } });
+      if (!grade) return { success: false, error: "Selecciona un grado válido." };
+      entityId = (await prisma.courseGroup.create({ data: { institutionId: institution.id, gradeId: grade.id, name } })).id;
+    } else if (input.kind === "year") {
+      const startDate = new Date(text("startDate", 20));
+      const endDate = new Date(text("endDate", 20));
+      if (Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf()) || startDate >= endDate) {
+        return { success: false, error: "Las fechas del año lectivo no son válidas." };
+      }
+      entityId = (await prisma.academicYear.create({ data: { institutionId: institution.id, name, startDate, endDate } })).id;
+    } else {
+      const year = await prisma.academicYear.findFirst({ where: { id: text("parentId", 100), institutionId: institution.id, active: true }, select: { id: true } });
+      const startDate = new Date(text("startDate", 20));
+      const endDate = new Date(text("endDate", 20));
+      const sequence = Number(input.values.sequence);
+      if (!year || !Number.isInteger(sequence) || sequence < 1 || Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf()) || startDate >= endDate) {
+        return { success: false, error: "El año, orden o las fechas del periodo no son válidos." };
+      }
+      const periodType = ["TRIMESTER", "SEMESTER", "PERIOD"].includes(input.values.periodType) ? input.values.periodType : "PERIOD";
+      entityId = (await prisma.academicPeriod.create({ data: { academicYearId: year.id, name, sequence, startDate, endDate, periodType } })).id;
+    }
+    await prisma.activityLog.create({
+      data: {
+        institutionId: institution.id,
+        actorId: superAdmin.id,
+        action: "CATALOG_ENTRY_CREATED_BY_SUPERADMIN",
+        entityType: input.kind,
+        entityId,
+        metadata: { name },
+      },
+    });
+    revalidatePath(`/superadmin/institutions/${institution.id}`);
+    revalidatePath("/plans/new");
+    return { success: true };
+  } catch (error) {
+    console.error("Error creando catálogo desde superadministración:", error);
+    return { success: false, error: "No se pudo crear el registro. Comprueba que no esté duplicado." };
+  }
 }
 
 export async function createInstitutionUser(input: {
