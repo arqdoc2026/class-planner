@@ -43,40 +43,39 @@ export default function StructuredSessionEditor({
   const addSession = () => setSessions((current) => [...current, emptySession(current.length + 1)]);
 
   return (
-    <section className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div><h2 className="text-2xl font-black">Etapa 3: Plan de aprendizaje</h2><p className="text-xs font-bold text-slate-500">{state === "saved" ? "Sesiones guardadas" : state === "saving" ? "Guardando sesiones…" : state === "conflict" ? "Conflicto: recarga antes de continuar" : "Error al guardar"}</p></div>
-        <button onClick={addSession} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-bold text-white">+ Sesión</button>
+    <section>
+      <div className="flex items-center justify-between border-x border-b border-black p-2">
+        <p className="text-xs font-bold">{state === "saved" ? "Sesiones guardadas" : state === "saving" ? "Guardando sesiones…" : state === "conflict" ? "Conflicto: recarga antes de continuar" : "Error al guardar"}</p>
+        <button onClick={addSession} className="rounded bg-blue-700 px-3 py-1 text-xs font-bold text-white">+ Sesión</button>
       </div>
-      {sessions.map((session, index) => (
-        <article key={session.id || `session-${index}`} className="space-y-4 rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-black">Sesión {index + 1}</h3>
-            {sessions.length > 1 && <button onClick={() => setSessions((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="text-sm font-bold text-red-600">Eliminar</button>}
-          </div>
-          <div className="grid gap-3 md:grid-cols-4">
-            <Input label="Fecha prevista" type="date" value={session.plannedDate} onChange={(value) => change(index, { plannedDate: value })} />
-            <label className="block"><span className="mb-1 block text-xs font-bold uppercase text-slate-500">Estado</span><select value={session.status} onChange={(event) => change(index, { status: event.target.value })} className="w-full rounded-lg border border-slate-300 px-3 py-2"><option value="PLANNED">Planeada</option><option value="IN_PROGRESS">En ejecución</option><option value="COMPLETED">Completada</option><option value="CANCELLED">Cancelada</option></select></label>
-            <Input label="Duración (min)" type="number" value={session.durationMinutes?.toString() || ""} onChange={(value) => change(index, { durationMinutes: Number(value) || null })} />
-            <Input label="Responsable" value={session.responsible} onChange={(value) => change(index, { responsible: value })} />
-          </div>
-          <Area label="Resultados de aprendizaje" value={session.learningResults} onChange={(value) => change(index, { learningResults: value })} />
-          <div className="grid gap-3 md:grid-cols-3">
-            <Area label="Inicio" value={session.startActivity} onChange={(value) => change(index, { startActivity: value })} />
-            <Area label="Desarrollo" value={session.developmentActivity} onChange={(value) => change(index, { developmentActivity: value })} />
-            <Area label="Cierre" value={session.closingActivity} onChange={(value) => change(index, { closingActivity: value })} />
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Area label="Evaluación formativa" value={session.formativeAssessment} onChange={(value) => change(index, { formativeAssessment: value })} />
-            <Area label="Diferenciación" value={session.differentiation} onChange={(value) => change(index, { differentiation: value })} />
-            <Area label="Recursos" value={session.resources} onChange={(value) => change(index, { resources: value })} />
-            <Area label="Tareas o compromisos" value={session.commitments} onChange={(value) => change(index, { commitments: value })} />
-            <Area label="Evidencias generadas" value={session.generatedEvidence} onChange={(value) => change(index, { generatedEvidence: value })} />
-            <Area label="Observaciones" value={session.observations} onChange={(value) => change(index, { observations: value })} />
-          </div>
-          <Checks label="Paradigma Pedagógico Ignaciano" options={ppi} selected={session.ignatianElements} onChange={(value) => change(index, { ignatianElements: value })} />
-          <Checks label="Educación personalizada" options={personalization} selected={session.personalizationStrategies} onChange={(value) => change(index, { personalizationStrategies: value })} />
-          <div className="space-y-3 rounded-xl bg-slate-50 p-4">
+      <table className="w-full table-fixed border-collapse">
+        <colgroup><col style={{ width: "7.86%" }} /><col style={{ width: "15.85%" }} /><col style={{ width: "49.54%" }} /><col style={{ width: "26.75%" }} /></colgroup>
+        <thead>
+          <tr><td colSpan={4} className="border border-black bg-[#d9d9d9] p-2 text-center leading-tight">El siguiente cuadro debe contener todas las actividades previstas para cada sesión, incluidos los elementos del Paradigma Pedagógico Ignaciano (Contexto, Experiencia, Reflexión, Acción, Evaluación); los instrumentos de la educación personalizada, estrategias de diferenciación y evaluación formativa continua.</td></tr>
+          <tr className="bg-[#d9d9d9] text-center font-bold"><th className="border border-black p-2">Sesión</th><th className="border border-black p-2">Resultados de aprendizaje</th><th className="border border-black p-2">Actividades de instrucción</th><th className="border border-black p-2">Recursos</th></tr>
+        </thead>
+        {sessions.map((session, index) => (
+          <tbody key={session.id || `session-${index}`}>
+            <tr><td rowSpan={6} className="border border-black p-2 text-center align-top text-lg font-bold">{index + 1}<input type="date" value={session.plannedDate} onChange={(event) => change(index, { plannedDate: event.target.value })} className="mt-2 w-full bg-transparent text-[9px] font-normal outline-none" /></td><td rowSpan={6} className="border border-black p-0 align-top"><textarea value={session.learningResults} onChange={(event) => change(index, { learningResults: event.target.value })} className="min-h-64 w-full resize-y bg-transparent p-2 outline-none focus:bg-blue-50" /></td><th className="border border-black bg-[#d0d0d0] p-1 text-left">Inicio</th><td rowSpan={6} className="border border-black p-0 align-top"><textarea value={session.resources} onChange={(event) => change(index, { resources: event.target.value })} className="min-h-64 w-full resize-y bg-transparent p-2 outline-none focus:bg-blue-50" /></td></tr>
+            <tr><td className="border border-black p-0"><textarea value={session.startActivity} onChange={(event) => change(index, { startActivity: event.target.value })} rows={4} className="w-full resize-y bg-transparent p-2 outline-none focus:bg-blue-50" /></td></tr>
+            <tr><th className="border border-black bg-[#d0d0d0] p-1 text-left">Actividades de la clase</th></tr>
+            <tr><td className="border border-black p-0"><textarea value={session.developmentActivity} onChange={(event) => change(index, { developmentActivity: event.target.value })} rows={4} className="w-full resize-y bg-transparent p-2 outline-none focus:bg-blue-50" /></td></tr>
+            <tr><th className="border border-black bg-[#d0d0d0] p-1 text-left">Cierre</th></tr>
+            <tr><td className="border border-black p-0"><textarea value={session.closingActivity} onChange={(event) => change(index, { closingActivity: event.target.value })} rows={4} className="w-full resize-y bg-transparent p-2 outline-none focus:bg-blue-50" /></td></tr>
+            <tr><td colSpan={4} className="border border-black p-2">
+              <details>
+                <summary className="cursor-pointer font-bold">Datos complementarios de la sesión {index + 1}</summary>
+                <div className="mt-3 space-y-3">
+                  <div className="grid gap-2 md:grid-cols-4">
+                    <label><span className="block text-xs font-bold">Estado</span><select value={session.status} onChange={(event) => change(index, { status: event.target.value })} className="w-full rounded border p-2"><option value="PLANNED">Planeada</option><option value="IN_PROGRESS">En ejecución</option><option value="COMPLETED">Completada</option><option value="CANCELLED">Cancelada</option></select></label>
+                    <Input label="Duración (min)" type="number" value={session.durationMinutes?.toString() || ""} onChange={(value) => change(index, { durationMinutes: Number(value) || null })} />
+                    <Input label="Responsable" value={session.responsible} onChange={(value) => change(index, { responsible: value })} />
+                    {sessions.length > 1 && <button type="button" onClick={() => setSessions((current) => current.filter((_, currentIndex) => currentIndex !== index))} className="text-sm font-bold text-red-600">Eliminar sesión</button>}
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2"><Area label="Evaluación formativa" value={session.formativeAssessment} onChange={(value) => change(index, { formativeAssessment: value })} /><Area label="Diferenciación" value={session.differentiation} onChange={(value) => change(index, { differentiation: value })} /><Area label="Tareas o compromisos" value={session.commitments} onChange={(value) => change(index, { commitments: value })} /><Area label="Evidencias generadas" value={session.generatedEvidence} onChange={(value) => change(index, { generatedEvidence: value })} /><Area label="Observaciones" value={session.observations} onChange={(value) => change(index, { observations: value })} /></div>
+                  <Checks label="Paradigma Pedagógico Ignaciano" options={ppi} selected={session.ignatianElements} onChange={(value) => change(index, { ignatianElements: value })} />
+                  <Checks label="Educación personalizada" options={personalization} selected={session.personalizationStrategies} onChange={(value) => change(index, { personalizationStrategies: value })} />
+                  <div className="space-y-3 bg-slate-50 p-3">
             <div className="flex justify-between"><h4 className="font-black">Actividades estructuradas</h4><button onClick={() => change(index, { activities: [...session.activities, emptyActivity()] })} className="text-sm font-bold text-blue-700">+ Actividad</button></div>
             {session.activities.map((activity, activityIndex) => (
               <div key={activity.id || `activity-${activityIndex}`} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -97,9 +96,13 @@ export default function StructuredSessionEditor({
                 </div>
               </div>
             ))}
-          </div>
-        </article>
-      ))}
+                  </div>
+                </div>
+              </details>
+            </td></tr>
+          </tbody>
+        ))}
+      </table>
     </section>
   );
 }

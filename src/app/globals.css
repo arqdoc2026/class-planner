@@ -17,7 +17,7 @@ body {
 
 @media print {
   @page {
-    size: letter portrait;
+    size: letter landscape;
     margin: 0.5in;
   }
 
@@ -28,8 +28,8 @@ body {
   }
 
   .institutional-document {
-    width: 7.5in;
-    max-width: 7.5in;
+    width: 10in;
+    max-width: 10in;
     margin: 0;
     font-family: Calibri, Arial, Helvetica, sans-serif;
     print-color-adjust: exact;

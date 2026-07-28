@@ -125,7 +125,7 @@ export default function StructuredPlanEditor({ initialPlan }: { initialPlan: Ini
         </aside>
         <main className="min-w-0">
           {lockWarning && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm font-bold text-amber-800">{lockWarning} Puedes consultar, pero evita sobrescribir contenido.</p>}
-          <article className="institutional-editor mx-auto min-h-[11in] w-full max-w-[8.5in] bg-white p-5 text-[11px] text-black shadow-xl md:p-8">
+          <article className="institutional-editor mx-auto min-h-[8.5in] w-full max-w-[11in] bg-white p-5 text-[11px] text-black shadow-xl md:p-8">
             <DocumentHeader plan={plan} update={update} onFocus={() => setActiveSection("document-header")} />
             <DocumentStage id="expected-results" title="Etapa 1: Resultados esperados" onFocus={() => setActiveSection("expected-results")}>
               <Expected unitTitle={plan.unitTitle} onTitleChange={(value) => update("unitTitle", value)} value={plan.expectedResults} onChange={(value) => update("expectedResults", value)} />
@@ -152,20 +152,17 @@ function DocumentHeader({ plan, update, onFocus }: { plan: InitialPlan; update: 
   const dates = plan.sessions.map((session) => session.plannedDate).filter(Boolean).sort();
   return <section id="document-header" onFocus={onFocus} className="mb-5 scroll-mt-28">
     <table className="w-full border-collapse">
+      <colgroup><col style={{ width: "20.53%" }} /><col style={{ width: "9.86%" }} /><col style={{ width: "2.3%" }} /><col style={{ width: "17.8%" }} /><col style={{ width: "1.82%" }} /><col style={{ width: "23.93%" }} /><col style={{ width: "9.91%" }} /><col style={{ width: "13.85%" }} /></colgroup>
       <tbody>
         <tr>
-          <td rowSpan={2} className="w-[19%] border border-black p-2 text-center"><Image src="/branding/colegio-san-jose-logo.png" width={92} height={88} alt="Colegio San José" className="mx-auto h-20 w-20 object-contain" /></td>
-          <td rowSpan={2} className="w-[56%] border border-black p-3 text-center text-base font-black">PLANEACIÓN</td>
-          <td className="w-[25%] border border-black bg-[#f2f2f2] p-2 text-center text-sm font-bold">Código:</td>
+          <td rowSpan={5} className="border border-black p-2 text-center align-top"><Image src="/branding/colegio-san-jose-logo.png" width={92} height={88} alt="Colegio San José" className="mx-auto h-20 w-20 object-contain" /></td>
+          <td rowSpan={2} colSpan={5} className="border border-black p-3 text-center text-base font-black">PLANEACIÓN</td>
+          <td colSpan={2} className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-bold">Código:</td>
         </tr>
-        <tr><td className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-black">{plan.formatCode}</td></tr>
-      </tbody>
-    </table>
-    <table className="w-full border-collapse">
-      <tbody>
-        <tr><th className="w-[19%] border border-black p-1 text-right">Área:</th><td colSpan={2} className="border border-black p-0"><input value={plan.area} onChange={(event) => update("area", event.target.value)} className="w-full bg-transparent p-1 outline-none focus:bg-blue-50" /></td><th className="border border-black p-1 text-left">Asignatura:</th><td colSpan={2} className="border border-black p-0"><input value={plan.subject} onChange={(event) => update("subject", event.target.value)} className="w-full bg-transparent p-1 outline-none focus:bg-blue-50" /></td></tr>
-        <tr><th className="border border-black p-1 text-right">Fecha</th><th className="border border-black p-1">Desde:</th><td className="border border-black p-1">{dates[0] || "—"}</td><th className="border border-black p-1">Hasta:</th><td className="border border-black p-1">{dates.at(-1) || "—"}</td><th className="border border-black p-1 text-center">Número de sesiones<br />{plan.sessions.length}</th></tr>
-        <tr><th className="border border-black p-1 text-right">Grado:</th><td className="border border-black p-0"><input value={plan.grade} onChange={(event) => update("grade", event.target.value)} className="w-full bg-transparent p-1 outline-none focus:bg-blue-50" /></td><th className="border border-black p-1">Trimestre / Semestre:</th><td className="border border-black p-1">{plan.academicPeriodName || "—"}</td><th className="border border-black p-1">Fecha de elaboración:<br />{plan.elaborationDate}</th><td className="border border-black p-1"><strong>Planeadas:</strong> {plan.sessions.length}<br /><strong>Completadas:</strong> {plan.sessions.filter((session) => session.status === "COMPLETED").length}</td></tr>
+        <tr><td colSpan={2} className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-black">{plan.formatCode}</td></tr>
+        <tr><td colSpan={5} className="border border-black p-0"><label className="flex items-center"><strong className="p-1">Área:</strong><input value={plan.area} onChange={(event) => update("area", event.target.value)} className="min-w-0 flex-1 bg-transparent p-1 outline-none focus:bg-blue-50" /></label></td><td colSpan={2} className="border border-black p-0"><label className="flex items-center"><strong className="p-1">Asignatura:</strong><input value={plan.subject} onChange={(event) => update("subject", event.target.value)} className="min-w-0 flex-1 bg-transparent p-1 outline-none focus:bg-blue-50" /></label></td></tr>
+        <tr><th className="border border-black p-1">Fecha</th><td colSpan={3} className="border border-black p-1"><strong>Desde:</strong> {dates[0] || "—"}</td><td className="border border-black p-1"><strong>Hasta:</strong> {dates.at(-1) || "—"}</td><td colSpan={2} className="border border-black p-1 text-center font-bold">Número de sesiones<br />{plan.sessions.length}</td></tr>
+        <tr><td colSpan={2} className="border border-black p-0"><label className="flex items-center"><strong className="p-1">Grado:</strong><input value={plan.grade} onChange={(event) => update("grade", event.target.value)} className="min-w-0 flex-1 bg-transparent p-1 outline-none focus:bg-blue-50" /></label></td><td className="border border-black p-1"><strong>Trimestre / Semestre:</strong><br />{plan.academicPeriodName || "—"}</td><td colSpan={2} className="border border-black p-1"><strong>Fecha de elaboración:</strong><br />{plan.elaborationDate}</td><td className="border border-black p-1"><strong>Planeadas:</strong><br />{plan.sessions.length}</td><td className="border border-black p-1"><strong>Completadas:</strong><br />{plan.sessions.filter((session) => session.status === "COMPLETED").length}</td></tr>
       </tbody>
     </table>
   </section>;
@@ -173,6 +170,7 @@ function DocumentHeader({ plan, update, onFocus }: { plan: InitialPlan; update: 
 
 function Expected({ unitTitle, onTitleChange, value, onChange }: { unitTitle: string; onTitleChange: (value: string) => void; value: StructuredPlanContent["expectedResults"]; onChange: (value: StructuredPlanContent["expectedResults"]) => void }) {
   return <div className="border-x border-b border-black">
+    <div className="h-8 border-b border-black" aria-hidden="true" />
     <div className="grid grid-cols-2 border-b border-black"><strong className="bg-[#d9d9d9] p-1">Título de la unidad</strong><input value={unitTitle} onChange={(event) => onTitleChange(event.target.value)} className="bg-transparent p-1 outline-none focus:bg-blue-50" /></div>
     <SourceField title="Objetivo de aprendizaje"><CompactList value={value.learningObjectives} onChange={(items) => onChange({ ...value, learningObjectives: items })} /></SourceField>
     <div className="grid grid-cols-2">
@@ -196,6 +194,7 @@ function Expected({ unitTitle, onTitleChange, value, onChange }: { unitTitle: st
 
 function Evidence({ value, onChange }: { value: StructuredPlanContent["evaluationEvidence"]; onChange: (value: StructuredPlanContent["evaluationEvidence"]) => void }) {
   return <div className="border-x border-b border-black">
+    <div className="h-8 border-b border-black" aria-hidden="true" />
     <div className="grid grid-cols-2">
       <div className="border-r border-black"><SourceHeading title="Tarea de desempeño" instruction="¿A través de qué tarea auténtica de desempeño los estudiantes demostrarán los entendimientos, conocimientos y habilidades deseados?" /><textarea value={value.performanceTask} onChange={(event) => onChange({ ...value, performanceTask: event.target.value })} rows={7} placeholder="Tarea auténtica de desempeño" className="w-full resize-y bg-transparent p-2 outline-none focus:bg-blue-50" /><textarea value={value.applicationScenario} onChange={(event) => onChange({ ...value, applicationScenario: event.target.value })} rows={3} placeholder="Escenario o situación de aplicación" className="w-full resize-y border-t border-black bg-transparent p-2 outline-none focus:bg-blue-50" /></div>
       <div><SourceHeading title="Otras evidencias" instruction="¿A través de qué otra evidencia los estudiantes demostrarán el logro de los resultados deseados? Incluya evaluaciones formativas y sumativas." /><p className="border-b border-black bg-slate-50 p-1 font-bold">Otras evidencias</p><CompactList value={value.otherEvidence} onChange={(items) => onChange({ ...value, otherEvidence: items })} /><p className="border-y border-black bg-slate-50 p-1 font-bold">Formativas</p><CompactList value={value.formativeAssessments} onChange={(items) => onChange({ ...value, formativeAssessments: items })} /><p className="border-y border-black bg-slate-50 p-1 font-bold">Sumativas</p><CompactList value={value.summativeAssessments} onChange={(items) => onChange({ ...value, summativeAssessments: items })} /></div>
@@ -224,7 +223,19 @@ function CompactList({ value, onChange }: { value: string[]; onChange: (value: s
 function TextArea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="grid min-h-20 grid-cols-[28%_1fr]"><span className="border-r border-black bg-slate-50 p-2 font-bold">{label}</span><textarea value={value} onChange={(event) => onChange(event.target.value)} rows={3} placeholder="Haz clic para escribir…" className="w-full resize-y bg-transparent p-2 outline-none focus:bg-blue-50" /></label>; }
 
 function Reflection({ value, onChange }: { value: StructuredPlanContent["finalReflection"]; onChange: (value: StructuredPlanContent["finalReflection"]) => void }) {
-  return <div className="divide-y divide-black border-x border-b border-black"><TextArea label="Alineación entre objetivos, evaluaciones y actividades" value={value.alignment} onChange={(text) => onChange({ ...value, alignment: text })} /><TextArea label="Ajustes intencionados al contenido" value={value.contentAdjustments} onChange={(text) => onChange({ ...value, contentAdjustments: text })} /><TextArea label="Ajustes a las prácticas de instrucción" value={value.instructionAdjustments} onChange={(text) => onChange({ ...value, instructionAdjustments: text })} /><TextArea label="Ajustes al entorno de aprendizaje" value={value.environmentAdjustments} onChange={(text) => onChange({ ...value, environmentAdjustments: text })} /><TextArea label="Atención a necesidades y diversidades" value={value.diversityAttention} onChange={(text) => onChange({ ...value, diversityAttention: text })} /><TextArea label="Qué funcionó" value={value.whatWorked} onChange={(text) => onChange({ ...value, whatWorked: text })} /><TextArea label="Qué no funcionó" value={value.whatDidNotWork} onChange={(text) => onChange({ ...value, whatDidNotWork: text })} /><TextArea label="Cambios recomendados" value={value.recommendedChanges} onChange={(text) => onChange({ ...value, recommendedChanges: text })} /><TextArea label="Otras observaciones" value={value.otherObservations} onChange={(text) => onChange({ ...value, otherObservations: text })} /><TextArea label="Reflexión final" value={value.finalReflection} onChange={(text) => onChange({ ...value, finalReflection: text })} /></div>;
+  return <div className="border-x border-b border-black">
+    <div className="grid grid-cols-4">
+      <ReflectionCell prompt="¿De qué manera se alinean los objetivos de aprendizaje, las evaluaciones de desempeño y las actividades de instrucción para crear un proceso de aprendizaje cohesivo y significativo?" value={value.alignment} onChange={(text) => onChange({ ...value, alignment: text })} />
+      <ReflectionCell prompt="¿Qué ajustes intencionados se hicieron al contenido del currículo, las prácticas de instrucción y/o el entorno para satisfacer las necesidades y diversidades de aprendizaje?" value={value.contentAdjustments} onChange={(text) => onChange({ ...value, contentAdjustments: text })} />
+      <ReflectionCell prompt="¿Qué funcionó y qué no funcionó?" value={value.whatWorked} onChange={(text) => onChange({ ...value, whatWorked: text })} />
+      <ReflectionCell prompt="Otras observaciones" value={value.otherObservations} onChange={(text) => onChange({ ...value, otherObservations: text })} last />
+    </div>
+    <details className="border-t border-black p-2"><summary className="cursor-pointer font-bold">Reflexión detallada y cambios recomendados</summary><div className="mt-2 divide-y divide-black border border-black"><TextArea label="Qué no funcionó" value={value.whatDidNotWork} onChange={(text) => onChange({ ...value, whatDidNotWork: text })} /><TextArea label="Ajustes a las prácticas de instrucción" value={value.instructionAdjustments} onChange={(text) => onChange({ ...value, instructionAdjustments: text })} /><TextArea label="Ajustes al entorno de aprendizaje" value={value.environmentAdjustments} onChange={(text) => onChange({ ...value, environmentAdjustments: text })} /><TextArea label="Atención a necesidades y diversidades" value={value.diversityAttention} onChange={(text) => onChange({ ...value, diversityAttention: text })} /><TextArea label="Cambios recomendados" value={value.recommendedChanges} onChange={(text) => onChange({ ...value, recommendedChanges: text })} /><TextArea label="Reflexión final" value={value.finalReflection} onChange={(text) => onChange({ ...value, finalReflection: text })} /></div></details>
+  </div>;
+}
+
+function ReflectionCell({ prompt, value, onChange, last = false }: { prompt: string; value: string; onChange: (value: string) => void; last?: boolean }) {
+  return <label className={`grid min-h-52 grid-rows-[auto_1fr] ${last ? "" : "border-r border-black"}`}><span className="min-h-24 p-2 text-center leading-tight">{prompt}</span><textarea value={value} onChange={(event) => onChange(event.target.value)} className="w-full resize-y border-t border-black bg-transparent p-2 outline-none focus:bg-blue-50" /></label>;
 }
 
 function DocumentStage({ id, title, children, onFocus }: { id: string; title: string; children: React.ReactNode; onFocus: () => void }) {
