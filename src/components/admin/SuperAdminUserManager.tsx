@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createInstitutionUser, deleteInstitutionUser, updateInstitutionUser } from "../../lib/actions/platform-actions";
+import { createInstitutionUser, deleteInstitutionUser, restoreInstitutionUser, updateInstitutionUser } from "../../lib/actions/platform-actions";
 
 type InstitutionOption = {
   id: string;
@@ -17,6 +17,7 @@ type InstitutionOption = {
     active: boolean;
     isSuperAdmin: boolean;
   }>;
+  removedMembers?: Array<{ id: string; profileId: string; fullName: string; username: string; role: string }>;
 };
 
 export default function SuperAdminUserManager({ institutions, currentUserId }: { institutions: InstitutionOption[]; currentUserId?: string }) {
@@ -73,6 +74,17 @@ export default function SuperAdminUserManager({ institutions, currentUserId }: {
     setMessage(null);
     const result = await deleteInstitutionUser(institutionId, member.profileId);
     setMessage({ ok: result.success, text: result.success ? "Perfil retirado de la institución." : result.error || "No se pudo eliminar." });
+    setPending(false);
+    setEditingId(null);
+    if (result.success) router.refresh();
+  }
+
+  async function restore(institutionId: string, profileId: string) {
+    setPending(true);
+    setEditingId(profileId);
+    setMessage(null);
+    const result = await restoreInstitutionUser(institutionId, profileId);
+    setMessage({ ok: result.success, text: result.success ? "Perfil restaurado correctamente." : result.error || "No se pudo restaurar." });
     setPending(false);
     setEditingId(null);
     if (result.success) router.refresh();
@@ -149,6 +161,21 @@ export default function SuperAdminUserManager({ institutions, currentUserId }: {
             </div>
           </section>
         ))}
+        {institutions.some((institution) => institution.removedMembers?.length) && (
+          <section className="overflow-hidden rounded-xl border border-amber-800">
+            <h3 className="bg-amber-950 px-4 py-3 font-bold text-amber-200">Perfiles retirados</h3>
+            <div className="divide-y divide-slate-800">
+              {institutions.flatMap((institution) => (institution.removedMembers || []).map((member) => (
+                <div key={member.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
+                  <div><p className="font-bold">{member.fullName}</p><p className="text-xs text-slate-400">@{member.username} · {member.role}</p></div>
+                  <button type="button" disabled={pending} onClick={() => restore(institution.id, member.profileId)} className="rounded-lg bg-amber-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">
+                    {editingId === member.profileId ? "Restaurando…" : "Restaurar acceso"}
+                  </button>
+                </div>
+              )))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

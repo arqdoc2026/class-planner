@@ -1,5 +1,8 @@
 import Link from "next/link";
+import AppNavigation from "../../components/navigation/AppNavigation";
 import { savePlanFilter, searchInstitutionPlans } from "../../lib/actions/discovery-actions";
+import { requireInstitutionContext } from "../../lib/auth";
+import { planStatusLabel } from "../../lib/status-labels";
 
 const statusOptions = ["DRAFT", "IN_PROGRESS", "READY_FOR_REVIEW", "IN_REVIEW", "CHANGES_REQUESTED", "CORRECTED", "APPROVED", "ARCHIVED"];
 
@@ -15,11 +18,14 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
     page: Number(value("page")) || 1,
   };
   const data = await searchInstitutionPlans(filters);
+  const context = await requireInstitutionContext();
   const areas = unique(data.facets.map((item) => item.area));
   const subjects = unique(data.facets.map((item) => item.subject));
   const grades = unique(data.facets.map((item) => item.grade));
   return (
-    <main className="min-h-screen bg-slate-100 p-6 md:p-10">
+    <div className="min-h-screen bg-slate-100">
+      <AppNavigation role={context.role} institutionName={context.institution.name} userName={context.profile.fullName} isSuperAdmin={context.profile.isSuperAdmin} />
+    <main className="p-5 md:p-10">
       <div className="mx-auto max-w-7xl space-y-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div><p className="text-xs font-black uppercase tracking-widest text-slate-400">Repositorio institucional</p><h1 className="text-3xl font-black">Planeaciones</h1></div>
@@ -27,7 +33,7 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
         </header>
         <form className="grid gap-3 rounded-2xl bg-white p-5 shadow-sm md:grid-cols-4">
           <input name="query" defaultValue={filters.query} placeholder="Título, área o asignatura" className="rounded-lg border border-slate-300 px-3 py-2 md:col-span-2" />
-          <Select name="status" value={filters.status} options={statusOptions} label="Estado" />
+          <select name="status" defaultValue={filters.status} className="rounded-lg border border-slate-300 px-3 py-2"><option value="">Estado: todos</option>{statusOptions.map((status) => <option key={status} value={status}>{planStatusLabel(status)}</option>)}</select>
           <Select name="area" value={filters.area} options={areas} label="Área" />
           <Select name="subject" value={filters.subject} options={subjects} label="Asignatura" />
           <Select name="grade" value={filters.grade} options={grades} label="Grado" />
@@ -52,15 +58,15 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           {data.savedFilters.map((filter) => <Link key={filter.id} href={`/plans?${new URLSearchParams(filter.filters as Record<string, string>).toString()}`} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-bold">{filter.name}</Link>)}
         </form>
         <p className="text-sm font-bold text-slate-500">{data.total} resultado(s)</p>
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="p-4">Unidad</th><th className="p-4">Clasificación</th><th className="p-4">Periodo / sede</th><th className="p-4">Responsable</th><th className="p-4">Estado</th><th className="p-4">Acciones</th></tr></thead>
-            <tbody>{data.plans.map((plan) => <tr key={plan.id} className="border-t border-slate-100"><td className="p-4 font-bold">{plan.unitTitle || "Sin título"}</td><td className="p-4 text-slate-600">{[plan.area, plan.subject, plan.grade, plan.courseGroup?.name].filter(Boolean).join(" · ")}</td><td className="p-4 text-slate-600">{[plan.academicYear?.name, plan.academicPeriod?.name, plan.campus?.name].filter(Boolean).join(" · ") || "Sin clasificar"}</td><td className="p-4">{plan.author?.fullName || "Sin asignar"}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold">{plan.status}</span></td><td className="p-4"><div className="flex gap-2"><Link href={`/plans/${plan.id}/edit`} className="font-bold text-blue-700">Editar</Link><Link href={`/plans/${plan.id}/review`} className="font-bold text-violet-700">Revisar</Link></div></td></tr>)}</tbody>
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+          <table className="min-w-[900px] w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="p-4">Unidad</th><th className="p-4">Clasificación</th><th className="p-4">Periodo / sede</th><th className="p-4">Responsable</th><th className="p-4">Estado</th><th className="p-4">Acciones</th></tr></thead>
+            <tbody>{data.plans.map((plan) => <tr key={plan.id} className="border-t border-slate-100"><td className="p-4 font-bold">{plan.unitTitle || "Sin título"}</td><td className="p-4 text-slate-600">{[plan.area, plan.subject, plan.grade, plan.courseGroup?.name].filter(Boolean).join(" · ")}</td><td className="p-4 text-slate-600">{[plan.academicYear?.name, plan.academicPeriod?.name, plan.campus?.name].filter(Boolean).join(" · ") || "Sin clasificar"}</td><td className="p-4">{plan.author?.fullName || "Sin asignar"}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold">{planStatusLabel(plan.status)}</span></td><td className="p-4"><div className="flex gap-2"><Link href={`/plans/${plan.id}/edit`} className="font-bold text-blue-700">Editar</Link><Link href={`/plans/${plan.id}/review`} className="font-bold text-violet-700">Revisar</Link></div></td></tr>)}</tbody>
           </table>
           {!data.plans.length && <p className="p-8 text-center text-slate-500">No hay planeaciones que coincidan.</p>}
         </div>
         <nav className="flex justify-center gap-3"><PageLink page={data.page - 1} disabled={data.page <= 1} filters={filters}>Anterior</PageLink><span className="px-3 py-2 text-sm">Página {data.page} de {data.pages}</span><PageLink page={data.page + 1} disabled={data.page >= data.pages} filters={filters}>Siguiente</PageLink></nav>
       </div>
-    </main>
+    </main></div>
   );
 }
 

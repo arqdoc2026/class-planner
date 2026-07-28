@@ -1,4 +1,5 @@
 import type { StructuredPlanContent } from "../../lib/institutional-format";
+import { planStatusLabel } from "../../lib/status-labels";
 
 type DocumentPlan = Awaited<ReturnType<typeof import("../../lib/actions/structured-plan-actions").getStructuredPlan>>["plan"];
 
@@ -19,7 +20,7 @@ export default function InstitutionalPlanDocument({ plan }: { plan: DocumentPlan
         <tbody>
           <Row label="Área" value={plan.area} secondLabel="Asignatura" secondValue={plan.subject} />
           <Row label="Grado" value={plan.grade} secondLabel="Unidad" secondValue={plan.unitTitle} />
-          <Row label="Profesor(es)" value={plan.teacherName || plan.authorId} secondLabel="Estado" secondValue={plan.status} />
+          <Row label="Profesor(es)" value={plan.teacherName || plan.authorId} secondLabel="Estado" secondValue={planStatusLabel(plan.status)} />
         </tbody>
       </table>
 

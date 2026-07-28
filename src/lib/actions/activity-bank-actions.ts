@@ -12,6 +12,25 @@ export async function getActivityBank() {
   return prisma.activityTemplate.findMany({ where: { institutionId: context.institutionId, active: true }, orderBy: { updatedAt: "desc" } });
 }
 
+export async function getEditableSessionsForActivityBank() {
+  const context = await requireInstitutionContext();
+  return prisma.session.findMany({
+    where: {
+      plan: {
+        institutionId: context.institutionId,
+        deletedAt: null,
+        status: { in: ["DRAFT", "IN_PROGRESS", "CHANGES_REQUESTED", "CORRECTED"] },
+        ...(context.role === "INSTITUTION_ADMIN" || context.role === "COORDINATOR"
+          ? {}
+          : { OR: [{ authorId: context.profile.id }, { collaborators: { some: { profileId: context.profile.id, role: "EDITOR" } } }] }),
+      },
+    },
+    select: { id: true, sessionNumber: true, plan: { select: { id: true, unitTitle: true, grade: true } } },
+    orderBy: [{ plan: { updatedAt: "desc" } }, { sessionNumber: "asc" }],
+    take: 200,
+  });
+}
+
 export async function createActivityTemplate(formData: FormData) {
   const context = await requireInstitutionContext();
   assertPermission(context.role, "plans.edit");

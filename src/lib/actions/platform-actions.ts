@@ -22,18 +22,26 @@ export async function getPlatformOverview() {
 
 export async function getPlatformInstitution(institutionId: string) {
   await requireSuperAdmin();
-  return prisma.institution.findFirst({
-    where: { id: institutionId, deletedAt: null },
-    include: {
-      campuses: { orderBy: { name: "asc" } },
-      memberships: {
-        where: { deletedAt: null },
-        include: { profile: { select: { id: true, fullName: true, username: true, email: true, isSuperAdmin: true } } },
-        orderBy: [{ role: "asc" }, { profile: { fullName: "asc" } }],
+  const [institution, removedMemberships] = await Promise.all([
+    prisma.institution.findFirst({
+      where: { id: institutionId, deletedAt: null },
+      include: {
+        campuses: { orderBy: { name: "asc" } },
+        memberships: {
+          where: { deletedAt: null },
+          include: { profile: { select: { id: true, fullName: true, username: true, email: true, isSuperAdmin: true } } },
+          orderBy: [{ role: "asc" }, { profile: { fullName: "asc" } }],
+        },
+        _count: { select: { memberships: true, plans: true, campuses: true } },
       },
-      _count: { select: { memberships: true, plans: true, campuses: true } },
-    },
-  });
+    }),
+    prisma.institutionMembership.findMany({
+      where: { institutionId, deletedAt: { not: null } },
+      include: { profile: { select: { id: true, fullName: true, username: true, isSuperAdmin: true } } },
+      orderBy: { deletedAt: "desc" },
+    }),
+  ]);
+  return institution ? { ...institution, removedMemberships } : null;
 }
 
 export async function createInstitutionUser(input: {
@@ -236,6 +244,37 @@ export async function deleteInstitutionUser(institutionId: string, profileId: st
     }),
   ]);
   revalidatePath("/superadmin");
+  revalidatePath(`/superadmin/institutions/${institutionId}`);
+  return { success: true };
+}
+
+export async function restoreInstitutionUser(institutionId: string, profileId: string) {
+  const superAdmin = await requireSuperAdmin();
+  const membership = await prisma.institutionMembership.findFirst({
+    where: { institutionId, profileId, deletedAt: { not: null } },
+    include: { institution: { select: { active: true, deletedAt: true } }, profile: { select: { username: true } } },
+  });
+  if (!membership) return { success: false, error: "No se encontró una membresía eliminada." };
+  if (!membership.institution.active || membership.institution.deletedAt) {
+    return { success: false, error: "Activa la institución antes de restaurar usuarios." };
+  }
+  await prisma.$transaction([
+    prisma.institutionMembership.update({
+      where: { institutionId_profileId: { institutionId, profileId } },
+      data: { status: "ACTIVE", deletedAt: null },
+    }),
+    prisma.profile.update({ where: { id: profileId }, data: { active: true } }),
+    prisma.activityLog.create({
+      data: {
+        institutionId,
+        actorId: superAdmin.id,
+        action: "USER_RESTORED_BY_SUPERADMIN",
+        entityType: "Profile",
+        entityId: profileId,
+        metadata: { username: membership.profile.username },
+      },
+    }),
+  ]);
   revalidatePath(`/superadmin/institutions/${institutionId}`);
   return { success: true };
 }

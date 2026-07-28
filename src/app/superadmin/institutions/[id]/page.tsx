@@ -22,6 +22,13 @@ export default async function InstitutionProfilePage({ params }: { params: Promi
       active: membership.status === "ACTIVE",
       isSuperAdmin: membership.profile.isSuperAdmin,
     })),
+    removedMembers: institution.removedMemberships.map((membership) => ({
+      id: membership.id,
+      profileId: membership.profileId,
+      fullName: membership.profile.fullName,
+      username: membership.profile.username,
+      role: membership.role,
+    })),
   };
 
   return (

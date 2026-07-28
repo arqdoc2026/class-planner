@@ -11,23 +11,25 @@ import {
   updateInstitutionAiSettings,
 } from "../../../lib/actions/institution-actions";
 import { requireInstitutionRole } from "../../../lib/auth";
-import LogoutButton from "../../../components/auth/LogoutButton";
+import AppNavigation from "../../../components/navigation/AppNavigation";
 
 const inputClass = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
 const buttonClass = "rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white";
 
 export default async function InstitutionPage() {
-  await requireInstitutionRole(["INSTITUTION_ADMIN"]);
+  const context = await requireInstitutionRole(["INSTITUTION_ADMIN"]);
   const data = await getInstitutionSettings();
   return (
-    <main className="min-h-screen bg-slate-100 p-6 md:p-10">
+    <div className="min-h-screen bg-slate-100">
+      <AppNavigation role={context.role} institutionName={context.institution.name} userName={context.profile.fullName} isSuperAdmin={context.profile.isSuperAdmin} />
+    <main className="p-5 md:p-10">
       <div className="mx-auto max-w-6xl space-y-8">
         <header className="flex items-center justify-between gap-4">
           <div>
             <p className="text-xs font-black uppercase tracking-widest text-slate-400">Administración institucional</p>
             <h1 className="text-3xl font-black text-slate-950">{data.institution.name}</h1>
           </div>
-          <div className="flex gap-2"><Link href="/dashboard" className={buttonClass}>Volver al panel</Link><LogoutButton /></div>
+          <Link href="/overview" className={buttonClass}>Volver al panel</Link>
         </header>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -104,7 +106,7 @@ export default async function InstitutionPage() {
           </Section>
         </div>
       </div>
-    </main>
+    </main></div>
   );
 }
 

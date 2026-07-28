@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createStructuredPlan } from "../../../lib/actions/structured-plan-actions";
 import { requireInstitutionContext } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
+import AppNavigation from "../../../components/navigation/AppNavigation";
 
 export default async function NewPlanPage() {
   const context = await requireInstitutionContext();
@@ -12,7 +13,9 @@ export default async function NewPlanPage() {
     prisma.academicYear.findMany({ where: { institutionId: context.institutionId, active: true }, include: { periods: { orderBy: { sequence: "asc" } } }, orderBy: { startDate: "desc" } }),
   ]);
   return (
-    <main className="min-h-screen bg-slate-100 p-6 md:p-10">
+    <div className="min-h-screen bg-slate-100">
+      <AppNavigation role={context.role} institutionName={context.institution.name} userName={context.profile.fullName} isSuperAdmin={context.profile.isSuperAdmin} />
+    <main className="p-5 md:p-10">
       <div className="mx-auto max-w-2xl space-y-6 rounded-3xl border border-slate-200 bg-white p-8 shadow">
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-slate-400">Nueva planeación</p>
@@ -30,11 +33,11 @@ export default async function NewPlanPage() {
           <Select name="academicPeriodId" label="Periodo" options={years.flatMap((year) => year.periods.map((item) => ({ id: item.id, label: `${year.name} · ${item.name}` })))} />
           <div className="flex gap-3">
             <button className="rounded-xl bg-slate-950 px-6 py-3 font-bold text-white">Crear y continuar</button>
-            <Link href="/dashboard" className="rounded-xl bg-slate-100 px-6 py-3 font-bold text-slate-700">Cancelar</Link>
+            <Link href="/overview" className="rounded-xl bg-slate-100 px-6 py-3 font-bold text-slate-700">Cancelar</Link>
           </div>
         </form>
       </div>
-    </main>
+    </main></div>
   );
 }
 

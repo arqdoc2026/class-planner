@@ -7,7 +7,7 @@ export type InstitutionRole = "INSTITUTION_ADMIN" | "COORDINATOR" | "TEACHER" | 
 export function roleHomePath(role: InstitutionRole, isSuperAdmin = false) {
   if (isSuperAdmin) return "/superadmin";
   if (role === "INSTITUTION_ADMIN" || role === "COORDINATOR") return "/overview";
-  if (role === "TEACHER") return "/dashboard";
+  if (role === "TEACHER") return "/overview";
   return "/plans";
 }
 
@@ -59,7 +59,7 @@ export async function requireInstitutionContext() {
 
 export async function requireInstitutionRole(roles: InstitutionRole[]) {
   const context = await requireInstitutionContext();
-  if (!roles.includes(context.role)) redirect("/dashboard");
+  if (!roles.includes(context.role)) redirect("/overview");
   return context;
 }
 
@@ -70,6 +70,6 @@ export async function requireAdmin() {
 
 export async function requireSuperAdmin() {
   const profile = await requireProfile();
-  if (!profile.isSuperAdmin) redirect("/dashboard");
+  if (!profile.isSuperAdmin) redirect("/overview");
   return profile;
 }
