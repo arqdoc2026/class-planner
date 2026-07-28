@@ -19,7 +19,7 @@ type InstitutionOption = {
   }>;
 };
 
-export default function SuperAdminUserManager({ institutions }: { institutions: InstitutionOption[] }) {
+export default function SuperAdminUserManager({ institutions, currentUserId }: { institutions: InstitutionOption[]; currentUserId?: string }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -122,8 +122,8 @@ export default function SuperAdminUserManager({ institutions }: { institutions: 
                 <form key={member.id} action={update} className="grid gap-2 p-4 md:grid-cols-8">
                   <input type="hidden" name="institutionId" value={institution.id} />
                   <input type="hidden" name="profileId" value={member.profileId} />
-                  <input name="fullName" required defaultValue={member.fullName} aria-label={`Nombre de ${member.username}`} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />
-                  <input name="username" required defaultValue={member.username} pattern="[a-zA-Z0-9._-]+" aria-label={`Usuario ${member.username}`} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />
+                  <input name="fullName" required defaultValue={member.fullName} disabled={member.isSuperAdmin && member.profileId !== currentUserId} aria-label={`Nombre de ${member.username}`} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 disabled:opacity-50" />
+                  <input name="username" required defaultValue={member.username} disabled={member.isSuperAdmin && member.profileId !== currentUserId} pattern="[a-zA-Z0-9._-]+" aria-label={`Usuario ${member.username}`} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 disabled:opacity-50" />
                   <select name="role" defaultValue={member.role} disabled={member.isSuperAdmin} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 disabled:opacity-50">
                     <option value="TEACHER">Profesor</option>
                     <option value="COORDINATOR">Coordinador</option>
@@ -136,9 +136,9 @@ export default function SuperAdminUserManager({ institutions }: { institutions: 
                     <option value="false">Suspendido</option>
                   </select>
                   {member.isSuperAdmin && <input type="hidden" name="active" value="true" />}
-                  <input name="newPassword" type="password" minLength={6} maxLength={6} pattern="[0-9]{6}" inputMode="numeric" placeholder="Nuevo PIN (opcional)" aria-label={`Nuevo PIN para ${member.username}`} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />
-                  <button disabled={pending || member.isSuperAdmin} className="rounded-lg bg-slate-700 px-3 py-2 font-bold text-white disabled:opacity-40">
-                    {editingId === member.profileId ? "Guardando…" : member.isSuperAdmin ? "Superadmin" : "Guardar"}
+                  <input name="newPassword" type="password" disabled={member.isSuperAdmin && member.profileId !== currentUserId} minLength={6} maxLength={6} pattern="[0-9]{6}" inputMode="numeric" placeholder="Nuevo PIN (opcional)" aria-label={`Nuevo PIN para ${member.username}`} className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 disabled:opacity-50" />
+                  <button disabled={pending || (member.isSuperAdmin && member.profileId !== currentUserId)} className="rounded-lg bg-slate-700 px-3 py-2 font-bold text-white disabled:opacity-40">
+                    {editingId === member.profileId ? "Guardando…" : member.isSuperAdmin ? "Actualizar mi perfil" : "Guardar"}
                   </button>
                   <button type="button" disabled={pending || member.isSuperAdmin} onClick={() => remove(institution.id, member)} className="rounded-lg border border-red-800 px-3 py-2 font-bold text-red-300 hover:bg-red-950 disabled:opacity-40">
                     Eliminar

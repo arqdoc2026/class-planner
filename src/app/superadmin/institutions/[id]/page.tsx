@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import SuperAdminUserManager from "../../../../components/admin/SuperAdminUserManager";
 import LogoutButton from "../../../../components/auth/LogoutButton";
 import { getPlatformInstitution } from "../../../../lib/actions/platform-actions";
+import { requireSuperAdmin } from "../../../../lib/auth";
 
 export default async function InstitutionProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const institution = await getPlatformInstitution(id);
+  const [institution, superAdmin] = await Promise.all([getPlatformInstitution(id), requireSuperAdmin()]);
   if (!institution) notFound();
   const managerInstitution = {
     id: institution.id,
@@ -47,7 +48,7 @@ export default async function InstitutionProfilePage({ params }: { params: Promi
             <p><span className="block text-xs uppercase text-slate-500">Sedes</span>{institution.campuses.map((campus) => campus.name).join(", ") || "Sin sedes"}</p>
           </div>
         </section>
-        <SuperAdminUserManager institutions={[managerInstitution]} />
+        <SuperAdminUserManager institutions={[managerInstitution]} currentUserId={superAdmin.id} />
       </div>
     </main>
   );
