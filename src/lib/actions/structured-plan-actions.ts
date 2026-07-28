@@ -90,7 +90,14 @@ export async function getStructuredPlan(planId: string) {
         ? {}
         : { OR: [{ authorId: context.profile.id }, { collaborators: { some: { profileId: context.profile.id } } }] }),
     },
-    include: { sessions: { include: { activities: { orderBy: { position: "asc" } } }, orderBy: { sessionNumber: "asc" } } },
+    include: {
+      institution: { select: { name: true } },
+      campus: true,
+      academicYear: true,
+      academicPeriod: true,
+      courseGroup: true,
+      sessions: { include: { activities: { orderBy: { position: "asc" } } }, orderBy: { sessionNumber: "asc" } },
+    },
   });
   if (!plan) throw new Error("PLAN_NOT_FOUND");
   return { context, plan };

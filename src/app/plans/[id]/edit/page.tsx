@@ -4,7 +4,8 @@ import { EMPTY_STRUCTURED_CONTENT, type StructuredPlanContent } from "../../../.
 
 export default async function EditPlanPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { plan } = await getStructuredPlan(id);
+  const { plan, context } = await getStructuredPlan(id);
+  const format = plan.formatSnapshot as { formatCode?: string; version?: string; name?: string } | null;
   return <StructuredPlanEditor initialPlan={{
     id: plan.id,
     versionNumber: plan.versionNumber,
@@ -12,6 +13,17 @@ export default async function EditPlanPage({ params }: { params: Promise<{ id: s
     area: plan.area || "",
     subject: plan.subject || "",
     grade: plan.grade || "",
+    institutionName: context.institution.name,
+    campusName: plan.campus?.name || "",
+    academicYearName: plan.academicYear?.name || "",
+    academicPeriodName: plan.academicPeriod?.name || "",
+    courseGroupName: plan.courseGroup?.name || "",
+    teacherName: plan.teacherName || context.profile.fullName,
+    coordinatorName: plan.coordinatorName || "",
+    status: plan.status,
+    formatName: format?.name || "FORMATO DE PLANEACIÓN DE CLASES",
+    formatCode: format?.formatCode || "MGF-03-R05",
+    formatVersion: format?.version || "01",
     expectedResults: (plan.expectedResults as StructuredPlanContent["expectedResults"] | null) || EMPTY_STRUCTURED_CONTENT.expectedResults,
     evaluationEvidence: (plan.evaluationEvidence as StructuredPlanContent["evaluationEvidence"] | null) || EMPTY_STRUCTURED_CONTENT.evaluationEvidence,
     finalReflection: (plan.finalReflection as StructuredPlanContent["finalReflection"] | null) || EMPTY_STRUCTURED_CONTENT.finalReflection,
