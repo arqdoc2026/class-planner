@@ -27,6 +27,13 @@ body {
   border-spacing: 0;
 }
 
+.institutional-document.pdf-export-content {
+  width: 10in !important;
+  max-width: 10in !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
 @media print {
   @page {
     size: letter landscape;
@@ -43,6 +50,8 @@ body {
     width: 10in;
     max-width: 10in;
     margin: 0;
+    padding: 0 !important;
+    box-sizing: border-box;
     font-family: Calibri, Arial, Helvetica, sans-serif;
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;

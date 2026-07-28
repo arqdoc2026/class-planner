@@ -10,7 +10,7 @@ export default function InstitutionalPlanDocument({ plan }: { plan: DocumentPlan
   const format = plan.formatSnapshot as { formatCode?: string; version?: string; name?: string } | null;
   const sessionDates = plan.sessions.flatMap((session) => session.plannedDate ? [session.plannedDate] : []).sort((a, b) => a.valueOf() - b.valueOf());
   return (
-    <article className="institutional-document mx-auto max-w-[11in] bg-white p-[0.5in] text-black">
+    <article id="institutional-plan-document" className="institutional-document mx-auto w-[11in] max-w-[11in] box-border bg-white p-[0.5in] text-black">
       <table className="mb-5 w-full table-fixed border-collapse">
         <colgroup><col style={{ width: "20.53%" }} /><col style={{ width: "9.86%" }} /><col style={{ width: "2.3%" }} /><col style={{ width: "17.8%" }} /><col style={{ width: "1.82%" }} /><col style={{ width: "23.93%" }} /><col style={{ width: "9.91%" }} /><col style={{ width: "13.85%" }} /></colgroup>
         <tbody>

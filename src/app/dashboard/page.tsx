@@ -39,7 +39,6 @@ export default function DashboardPage() {
   const [successMsg, setSuccessMsg] = useState("¡Cambios guardados!");
   const [noticeType, setNoticeType] = useState<"success" | "error">("success");
   const [isSaving, setIsSaving] = useState(false);
-  const [exportingFileId, setExportingFileId] = useState<string | null>(null);
   const [uploadingRubricPlanId, setUploadingRubricPlanId] = useState<string | null>(null);
 
   // ESTADO DE HORARIO Y TIEMPO (NUEVO)
@@ -347,35 +346,8 @@ export default function DashboardPage() {
     });
   };
 
-  const exportDocumentToPdf = async (fileId: string, plan: any, documentNumber: number) => {
-    const element = document.getElementById(`pdf-${fileId}`);
-    if (!element || exportingFileId) return;
-    setExportingFileId(fileId);
-    try {
-      const html2pdf = (await import("html2pdf.js")).default;
-      const safeTitle = String(plan.unitTitle || "planeacion")
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-zA-Z0-9]+/g, "-")
-        .replace(/^-|-$/g, "")
-        .toLowerCase();
-      await html2pdf().set({
-        margin: 0.5,
-        filename: `${safeTitle || "planeacion"}-documento-${documentNumber}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"], avoid: ["tr"] },
-      } as any).from(element).save();
-    } catch (error) {
-      console.error("No se pudo exportar el PDF:", error);
-      setNoticeType("error");
-      setSuccessMsg("No se pudo generar el PDF.");
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 4000);
-    } finally {
-      setExportingFileId(null);
-    }
+  const exportDocumentToPdf = (planId: string) => {
+    window.open(`/plans/${planId}/print`, "_blank", "noopener,noreferrer");
   };
 
   const uploadRubric = async (planId: string, file?: File) => {
@@ -739,8 +711,8 @@ export default function DashboardPage() {
                         <Link href={`/plans/${planBase.id}/review`} onClick={(e) => e.stopPropagation()} className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700 hover:bg-blue-100">
                           <FileCheck className="h-4 w-4" /> Revisión
                         </Link>
-                        <button disabled={exportingFileId === file.id} className="flex items-center gap-2 text-slate-900 bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-200 disabled:opacity-50" onClick={(e) => { e.stopPropagation(); exportDocumentToPdf(file.id, planBase, file.documentNumber); }}>
-                          <Printer className="w-4 h-4"/> {exportingFileId === file.id ? "Generando…" : "Descargar PDF"}
+                        <button className="flex items-center gap-2 text-slate-900 bg-slate-100 border border-slate-300 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-slate-200" onClick={(e) => { e.stopPropagation(); exportDocumentToPdf(planBase.id); }}>
+                          <Printer className="w-4 h-4"/> Exportar formato oficial
                         </button>
                       </>
                     )}
