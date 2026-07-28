@@ -74,10 +74,17 @@ export default function SuperAdminUserManager({ institutions }: { institutions: 
           <p className="mt-1 text-sm text-slate-400">Crea el acceso en Supabase y asígnalo inmediatamente a una institución.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-          <select name="institutionId" required className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2">
-            <option value="">Selecciona institución</option>
-            {institutions.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-          </select>
+          {institutions.length === 1 ? (
+            <div className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2">
+              <input type="hidden" name="institutionId" value={institutions[0].id} />
+              {institutions[0].name}
+            </div>
+          ) : (
+            <select name="institutionId" required className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2">
+              <option value="">Selecciona institución</option>
+              {institutions.filter((item) => item.active).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+          )}
           <input name="fullName" required minLength={2} maxLength={200} placeholder="Nombre completo" className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />
           <input name="username" required minLength={3} maxLength={30} pattern="[a-zA-Z0-9._-]+" placeholder="usuario" autoCapitalize="none" className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />
           <input name="temporaryPassword" required type="password" minLength={6} maxLength={6} pattern="[0-9]{6}" inputMode="numeric" autoComplete="new-password" placeholder="PIN temporal (6 dígitos)" className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2" />

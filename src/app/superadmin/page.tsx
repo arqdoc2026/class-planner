@@ -1,4 +1,4 @@
-import SuperAdminUserManager from "../../components/admin/SuperAdminUserManager";
+import Link from "next/link";
 import { createInstitution, getPlatformOverview, setInstitutionActive } from "../../lib/actions/platform-actions";
 
 export default async function SuperAdminPage() {
@@ -18,32 +18,15 @@ export default async function SuperAdminPage() {
           <input name="slug" required placeholder="identificador-url" className="rounded-lg border px-3 py-2" />
           <button className="rounded-lg bg-slate-950 px-4 py-2 font-bold text-white">Crear institución</button>
         </form>
-        <SuperAdminUserManager institutions={data.institutions.map(({ id, name, active, memberships }) => ({
-          id,
-          name,
-          active,
-          members: memberships.map((membership) => ({
-            id: membership.id,
-            profileId: membership.profileId,
-            fullName: membership.profile.fullName,
-            username: membership.profile.username,
-            role: membership.role,
-            active: membership.status === "ACTIVE",
-            isSuperAdmin: membership.profile.isSuperAdmin,
-          })),
-        }))} />
         <div className="overflow-hidden rounded-2xl bg-white text-slate-950">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-100"><tr><th className="p-4">Institución</th><th className="p-4">Miembros</th><th className="p-4">Planeaciones</th><th className="p-4">Estado</th></tr></thead>
+            <thead className="bg-slate-100"><tr><th className="p-4">Institución</th><th className="p-4">Miembros</th><th className="p-4">Planeaciones</th><th className="p-4">Estado</th><th className="p-4">Gestión</th></tr></thead>
             <tbody>
               {data.institutions.map((institution) => (
                 <tr key={institution.id} className="border-t align-top">
                   <td className="p-4"><strong>{institution.name}</strong><br /><small>{institution.slug}</small></td>
                   <td className="p-4">
                     <strong>{institution._count.memberships}</strong>
-                    <ul className="mt-2 space-y-1 text-xs text-slate-500">
-                      {institution.memberships.slice(0, 6).map((membership) => <li key={membership.id}>{membership.profile.fullName} · {membership.role}</li>)}
-                    </ul>
                   </td>
                   <td className="p-4">{institution._count.plans}</td>
                   <td className="p-4">
@@ -51,6 +34,7 @@ export default async function SuperAdminPage() {
                       <button className={`rounded-full px-3 py-1 text-xs font-bold ${institution.active ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>{institution.active ? "Activa" : "Suspendida"}</button>
                     </form>
                   </td>
+                  <td className="p-4"><Link href={`/superadmin/institutions/${institution.id}`} className="inline-flex rounded-lg bg-blue-700 px-4 py-2 font-bold text-white hover:bg-blue-600">Abrir perfil</Link></td>
                 </tr>
               ))}
             </tbody>

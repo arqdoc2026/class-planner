@@ -10,14 +10,7 @@ export async function getPlatformOverview() {
   await requireSuperAdmin();
   const [institutions, users, plans, aiRequests] = await Promise.all([
     prisma.institution.findMany({
-      include: {
-        memberships: {
-          where: { deletedAt: null },
-          include: { profile: { select: { id: true, fullName: true, username: true, email: true, isSuperAdmin: true } } },
-          orderBy: { createdAt: "desc" },
-        },
-        _count: { select: { memberships: true, plans: true } },
-      },
+      include: { _count: { select: { memberships: true, plans: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.profile.count(),
@@ -25,6 +18,22 @@ export async function getPlatformOverview() {
     prisma.aiRequest.count({ where: { createdAt: { gte: new Date(Date.now() - 30 * 86_400_000) } } }),
   ]);
   return { institutions, metrics: { users, plans, aiRequests, institutions: institutions.length } };
+}
+
+export async function getPlatformInstitution(institutionId: string) {
+  await requireSuperAdmin();
+  return prisma.institution.findFirst({
+    where: { id: institutionId, deletedAt: null },
+    include: {
+      campuses: { orderBy: { name: "asc" } },
+      memberships: {
+        where: { deletedAt: null },
+        include: { profile: { select: { id: true, fullName: true, username: true, email: true, isSuperAdmin: true } } },
+        orderBy: [{ role: "asc" }, { profile: { fullName: "asc" } }],
+      },
+      _count: { select: { memberships: true, plans: true, campuses: true } },
+    },
+  });
 }
 
 export async function createInstitutionUser(input: {
