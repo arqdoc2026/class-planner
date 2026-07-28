@@ -1,11 +1,6 @@
-import { redirect } from "next/navigation";
 import AuthForm from "../components/auth/AuthForm";
-import { getCurrentInstitutionContext, roleHomePath } from "../lib/auth";
 
-export default async function HomePage() {
-  const context = await getCurrentInstitutionContext();
-  if (context) redirect(roleHomePath(context.role, context.profile.isSuperAdmin));
-
+export default function HomePage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
