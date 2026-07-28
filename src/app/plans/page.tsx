@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AppNavigation from "../../components/navigation/AppNavigation";
+import SelectablePlansTable from "../../components/plans/SelectablePlansTable";
 import { savePlanFilter, searchInstitutionPlans } from "../../lib/actions/discovery-actions";
 import { requireInstitutionContext } from "../../lib/auth";
 import { planStatusLabel } from "../../lib/status-labels";
@@ -58,12 +59,16 @@ export default async function PlansPage({ searchParams }: { searchParams: Promis
           {data.savedFilters.map((filter) => <Link key={filter.id} href={`/plans?${new URLSearchParams(filter.filters as Record<string, string>).toString()}`} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-bold">{filter.name}</Link>)}
         </form>
         <p className="text-sm font-bold text-slate-500">{data.total} resultado(s)</p>
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
-          <table className="min-w-[900px] w-full text-left text-sm"><thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="p-4">Unidad</th><th className="p-4">Clasificación</th><th className="p-4">Periodo / sede</th><th className="p-4">Responsable</th><th className="p-4">Estado</th><th className="p-4">Acciones</th></tr></thead>
-            <tbody>{data.plans.map((plan) => <tr key={plan.id} className="border-t border-slate-100"><td className="p-4 font-bold">{plan.unitTitle || "Sin título"}</td><td className="p-4 text-slate-600">{[plan.area, plan.subject, plan.grade, plan.courseGroup?.name].filter(Boolean).join(" · ")}</td><td className="p-4 text-slate-600">{[plan.academicYear?.name, plan.academicPeriod?.name, plan.campus?.name].filter(Boolean).join(" · ") || "Sin clasificar"}</td><td className="p-4">{plan.author?.fullName || "Sin asignar"}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold">{planStatusLabel(plan.status)}</span></td><td className="p-4"><div className="flex gap-2"><Link href={`/plans/${plan.id}/edit`} className="font-bold text-blue-700">Editar</Link><Link href={`/plans/${plan.id}/review`} className="font-bold text-violet-700">Revisar</Link></div></td></tr>)}</tbody>
-          </table>
-          {!data.plans.length && <p className="p-8 text-center text-slate-500">No hay planeaciones que coincidan.</p>}
-        </div>
+        <SelectablePlansTable
+          canBulkDelete={context.role !== "VIEWER"}
+          plans={data.plans.map((plan) => ({
+            id: plan.id, unitTitle: plan.unitTitle, area: plan.area, subject: plan.subject, grade: plan.grade,
+            authorId: plan.authorId, authorName: plan.author?.fullName || null, status: plan.status,
+            courseGroupName: plan.courseGroup?.name || null, academicYearName: plan.academicYear?.name || null,
+            academicPeriodName: plan.academicPeriod?.name || null, campusName: plan.campus?.name || null,
+            canDelete: context.role === "INSTITUTION_ADMIN" || plan.authorId === context.profile.id,
+          }))}
+        />
         <nav className="flex justify-center gap-3"><PageLink page={data.page - 1} disabled={data.page <= 1} filters={filters}>Anterior</PageLink><span className="px-3 py-2 text-sm">Página {data.page} de {data.pages}</span><PageLink page={data.page + 1} disabled={data.page >= data.pages} filters={filters}>Siguiente</PageLink></nav>
       </div>
     </main></div>

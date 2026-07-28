@@ -73,6 +73,46 @@ export async function softDeletePlan(planId: string) {
   redirect("/plans");
 }
 
+export async function softDeletePlans(input: { planIds?: string[]; all?: boolean }) {
+  const context = await requireInstitutionContext();
+  if (context.role === "VIEWER") return { success: false, error: "No tienes permiso para eliminar planeaciones." };
+
+  const requestedIds = Array.from(new Set((input.planIds || []).map(String).filter((id) => /^[a-zA-Z0-9_-]{1,100}$/.test(id))));
+  if (!input.all && !requestedIds.length) return { success: false, error: "Selecciona al menos una planeación." };
+  if (requestedIds.length > 100) return { success: false, error: "Solo puedes eliminar hasta 100 planeaciones por operación." };
+
+  const ownership = context.role === "INSTITUTION_ADMIN" ? {} : { authorId: context.profile.id };
+  const where = {
+    institutionId: context.institutionId,
+    deletedAt: null,
+    ...ownership,
+    ...(input.all ? {} : { id: { in: requestedIds } }),
+  };
+  const plans = await prisma.classPlan.findMany({ where, select: { id: true } });
+  if (!input.all && plans.length !== requestedIds.length) {
+    return { success: false, error: "Una o más planeaciones no existen o no pueden ser eliminadas por tu usuario." };
+  }
+  if (!plans.length) return { success: false, error: "No hay planeaciones disponibles para eliminar." };
+
+  const deletedAt = new Date();
+  await prisma.$transaction([
+    prisma.classPlan.updateMany({ where: { id: { in: plans.map((plan) => plan.id) }, institutionId: context.institutionId }, data: { deletedAt } }),
+    prisma.activityLog.createMany({
+      data: plans.map((plan) => ({
+        institutionId: context.institutionId,
+        actorId: context.profile.id,
+        action: input.all ? "PLANS_BULK_SOFT_DELETED_ALL" : "PLANS_BULK_SOFT_DELETED",
+        entityType: "ClassPlan",
+        entityId: plan.id,
+      })),
+    }),
+  ]);
+  revalidatePath("/plans");
+  revalidatePath("/trash");
+  revalidatePath("/overview");
+  return { success: true, count: plans.length };
+}
+
 export async function getDeletedPlans() {
   const context = await requireInstitutionContext();
   return prisma.classPlan.findMany({
