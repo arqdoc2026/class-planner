@@ -2,25 +2,57 @@
   "name": "class-planner",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit --incremental false",
+    "test": "node --test src/lib/*.test.mjs",
+    "test:e2e": "playwright test",
+    "check": "npm run typecheck && npm run lint && npm test",
+    "db:generate": "prisma generate",
+    "db:status": "prisma migrate status --config prisma.migrate.config.ts",
+    "db:deploy": "prisma migrate deploy --config prisma.migrate.config.ts",
+    "db:seed": "node prisma/seed.mjs"
   },
   "dependencies": {
-    "next": "16.2.4",
+    "@google/genai": "^1.50.1",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "@prisma/config": "^7.9.1",
+    "@supabase/ssr": "^0.12.3",
+    "@supabase/supabase-js": "^2.104.0",
+    "dotenv": "^17.4.2",
+    "html2pdf.js": "^0.14.0",
+    "lucide-react": "^1.9.0",
+    "next": "^16.2.12",
+    "pg": "^8.20.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "^16.2.12",
+    "prisma": "^7.9.1",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "@hono/node-server": "2.0.12",
+    "fast-uri": "4.1.1",
+    "hono": "4.12.32",
+    "postcss": "8.5.24",
+    "protobufjs": "7.6.5",
+    "sharp": "0.35.3",
+    "valibot": "1.4.2",
+    "ws": "8.21.1"
   }
 }

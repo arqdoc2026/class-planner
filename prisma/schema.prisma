@@ -1,0 +1,681 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+}
+
+enum MembershipRole {
+  INSTITUTION_ADMIN
+  COORDINATOR
+  TEACHER
+  VIEWER
+}
+
+enum MembershipStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+model Profile {
+  id                  String                  @id @db.Uuid
+  email               String                  @unique
+  username            String                  @unique
+  fullName            String
+  role                UserRole                @default(TEACHER)
+  active              Boolean                 @default(true)
+  isSuperAdmin        Boolean                 @default(false)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  classPlans          ClassPlan[]
+  trimesterConfigs    TrimesterConfig[]
+  teacherSchedule     TeacherSchedule?
+  memberships         InstitutionMembership[]
+  collaborations      PlanCollaborator[]
+  comments            PlanComment[]
+  versionsCreated     PlanVersion[]
+  auditLogs           ActivityLog[]
+  reviews             PlanReview[]
+  approvals           PlanApproval[]
+  aiRequests          AiRequest[]
+  notifications       Notification[]
+  savedFilters        SavedFilter[]
+  invitationsCreated  InstitutionInvitation[] @relation("InvitationCreator")
+  editingPresence     EditingPresence[]
+  sectionLocks        SectionLock[]
+  activityTemplates   ActivityTemplate[]
+  attachmentsUploaded PlanAttachment[]
+
+  @@map("profiles")
+}
+
+model Institution {
+  id                String                  @id @default(uuid())
+  name              String
+  slug              String                  @unique
+  active            Boolean                 @default(true)
+  settings          Json?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  deletedAt         DateTime?
+  campuses          Campus[]
+  memberships       InstitutionMembership[]
+  plans             ClassPlan[]
+  templates         InstitutionalTemplate[]
+  areas             AcademicArea[]
+  grades            AcademicGrade[]
+  years             AcademicYear[]
+  auditLogs         ActivityLog[]
+  rubrics           Rubric[]
+  aiRequests        AiRequest[]
+  notifications     Notification[]
+  invitations       InstitutionInvitation[]
+  activityTemplates ActivityTemplate[]
+}
+
+model Campus {
+  id            String      @id @default(uuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  code          String?
+  active        Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  plans         ClassPlan[] @relation("PlanCampus")
+
+  @@unique([institutionId, name])
+}
+
+model InstitutionMembership {
+  id            String           @id @default(uuid())
+  institutionId String
+  institution   Institution      @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  profileId     String           @db.Uuid
+  profile       Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  role          MembershipRole   @default(TEACHER)
+  status        MembershipStatus @default(ACTIVE)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  deletedAt     DateTime?
+
+  @@unique([institutionId, profileId])
+  @@index([profileId, status])
+}
+
+// 1. CONFIGURACIÓN DEL AÑO ESCOLAR (Tarjeta 3)
+model TrimesterConfig {
+  id                   String   @id @default(uuid())
+  grade                String
+  trimester            Int
+  startDate            DateTime
+  endDate              DateTime
+  mainObjective        String   @db.Text
+  classDay             Int      @default(1)
+  conceptualReferences String   @default("") @db.Text
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  classPlans    ClassPlan[]
+  authorId      String?     @db.Uuid
+  author        Profile?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  institutionId String?
+
+  @@index([authorId])
+  @@index([institutionId, grade, trimester])
+}
+
+// 2. EL MOLDE: Plantillas Predeterminadas (Tarjeta 2)
+model Template {
+  id            String      @id @default(uuid())
+  name          String
+  formatCode    String      @default("MGF-03-R05")
+  area          String?
+  subject       String?
+  grade         String?
+  defaultPbl    String?
+  defaultSkills String?
+  classPlans    ClassPlan[]
+  createdAt     DateTime    @default(now())
+  institutionId String?
+}
+
+// 3. EL DOCUMENTO: Planeación Semanal/Mensual
+model ClassPlan {
+  id                String           @id @default(uuid())
+  templateId        String?
+  template          Template?        @relation(fields: [templateId], references: [id])
+  trimesterConfigId String?
+  trimesterConfig   TrimesterConfig? @relation(fields: [trimesterConfigId], references: [id], onDelete: SetNull)
+
+  // Fechas y Auditoría
+  classDate       DateTime?
+  elaborationDate DateTime?
+  approvalDate    DateTime?
+
+  // Datos de Identificación
+  area      String?
+  grade     String?
+  subject   String?
+  unitTitle String?
+
+  // Contenido Pedagógico
+  learningObjective  String? @db.Text
+  essentialQuestions String? @db.Text
+  pblCompetence      String? @db.Text
+  knowledge          String? @db.Text
+  skills             String? @db.Text
+
+  // Evaluación y Reflexión
+  performanceTask       String? @db.Text
+  otherEvidences        String? @db.Text
+  rubricFileUrl         String?
+  alignmentReflection   String? @db.Text
+  curricularAdjustments String? @db.Text
+  classEvaluation       String? @db.Text
+  otherObservations     String? @db.Text
+
+  // Metadatos que deben quedar congelados en cada documento institucional.
+  teacherName        String?
+  coordinatorName    String?
+  completedSessions  Int                           @default(0)
+  status             String                        @default("DRAFT")
+  authorId           String?                       @db.Uuid
+  author             Profile?                      @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  institutionId      String?
+  institution        Institution?                  @relation(fields: [institutionId], references: [id], onDelete: Restrict)
+  formatVersionId    String?
+  formatVersion      InstitutionalTemplateVersion? @relation(fields: [formatVersionId], references: [id], onDelete: Restrict)
+  formatSnapshot     Json?
+  expectedResults    Json?
+  evaluationEvidence Json?
+  finalReflection    Json?
+  versionNumber      Int                           @default(1)
+  deletedAt          DateTime?
+  campusId           String?
+  campus             Campus?                       @relation("PlanCampus", fields: [campusId], references: [id], onDelete: SetNull)
+  academicYearId     String?
+  academicYear       AcademicYear?                 @relation(fields: [academicYearId], references: [id], onDelete: SetNull)
+  academicPeriodId   String?
+  academicPeriod     AcademicPeriod?               @relation(fields: [academicPeriodId], references: [id], onDelete: SetNull)
+  academicAreaId     String?
+  academicArea       AcademicArea?                 @relation(fields: [academicAreaId], references: [id], onDelete: SetNull)
+  academicSubjectId  String?
+  academicSubject    AcademicSubject?              @relation(fields: [academicSubjectId], references: [id], onDelete: SetNull)
+  academicGradeId    String?
+  academicGrade      AcademicGrade?                @relation(fields: [academicGradeId], references: [id], onDelete: SetNull)
+  courseGroupId      String?
+  courseGroup        CourseGroup?                  @relation(fields: [courseGroupId], references: [id], onDelete: SetNull)
+
+  sessions        Session[]
+  collaborators   PlanCollaborator[]
+  comments        PlanComment[]
+  versions        PlanVersion[]
+  reviews         PlanReview[]
+  approvals       PlanApproval[]
+  editingPresence EditingPresence[]
+  sectionLocks    SectionLock[]
+  attachments     PlanAttachment[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([trimesterConfigId])
+  @@index([authorId])
+  @@index([institutionId, status, updatedAt])
+  @@index([formatVersionId])
+  @@index([institutionId, academicYearId, academicPeriodId])
+  @@index([institutionId, academicAreaId, academicSubjectId])
+  @@index([institutionId, academicGradeId, courseGroupId])
+  @@index([institutionId, campusId])
+}
+
+// 4. ETAPA 3: Sesiones de Clase
+model Session {
+  id                        String     @id @default(uuid())
+  planId                    String
+  plan                      ClassPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  sessionNumber             Int
+  learningResults           String?    @db.Text
+  resources                 String?    @db.Text
+  startActivity             String?    @db.Text
+  developmentActivity       String?    @db.Text
+  closingActivity           String?    @db.Text
+  plannedDate               DateTime?
+  durationMinutes           Int?
+  status                    String     @default("PLANNED")
+  versionNumber             Int        @default(1)
+  formativeAssessment       String?    @db.Text
+  differentiation           String?    @db.Text
+  individualWork            String?    @db.Text
+  teamwork                  String?    @db.Text
+  wholeClassInstruction     String?    @db.Text
+  exchangeOfIdeas           String?    @db.Text
+  commitments               String?    @db.Text
+  generatedEvidence         String?    @db.Text
+  responsible               String?
+  observations              String?    @db.Text
+  ignatianElements          String[]   @default([])
+  personalizationStrategies String[]   @default([])
+  activities                Activity[]
+
+  @@unique([planId, sessionNumber])
+  @@index([planId])
+}
+
+// 5. PLANTILLA MAESTRA INSTITUCIONAL
+model InstitutionalTemplate {
+  id String @id @default(cuid())
+
+  // Encabezado
+  schoolName  String  @default("COLEGIO SAN JOSÉ")
+  logoUrl     String? // Opcional, para guardar el link de la imagen
+  formatName  String  @default("FORMATO DE PLANEACIÓN DE CLASES")
+  formatCode  String  @default("MGF-03-R05")
+  version     String  @default("01")
+  processName String  @default("GESTIÓN ACADÉMICA Y PEDAGÓGICA")
+
+  // Datos base por defecto
+  defaultArea    String @default("Educación Física")
+  defaultSubject String @default("Educación Física")
+
+  // Firmas por defecto
+  defaultTeacher     String       @default("KEVIN PERALTA")
+  defaultCoordinator String       @default("")
+  institutionId      String?
+  institution        Institution? @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  published          Boolean      @default(false)
+  configuration      Json?
+  createdAt          DateTime     @default(now())
+
+  updatedAt DateTime                       @updatedAt
+  versions  InstitutionalTemplateVersion[]
+
+  @@index([institutionId, published])
+}
+
+model InstitutionalTemplateVersion {
+  id            String                @id @default(uuid())
+  templateId    String
+  template      InstitutionalTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  institutionId String
+  version       String
+  formatCode    String
+  name          String
+  configuration Json
+  effectiveFrom DateTime
+  publishedAt   DateTime              @default(now())
+  createdById   String                @db.Uuid
+  plans         ClassPlan[]
+
+  @@unique([templateId, version])
+  @@index([institutionId, effectiveFrom])
+}
+
+// 6. HORARIO DE CLASE DEL DOCENTE
+model TeacherSchedule {
+  id            String   @id @default(cuid())
+  teacherName   String   @unique
+  scheduleData  Json
+  updatedAt     DateTime @updatedAt
+  authorId      String?  @unique @db.Uuid
+  author        Profile? @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  institutionId String?
+
+  @@index([institutionId])
+}
+
+model AcademicArea {
+  id            String            @id @default(uuid())
+  institutionId String
+  institution   Institution       @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  code          String?
+  active        Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  subjects      AcademicSubject[]
+  plans         ClassPlan[]
+
+  @@unique([institutionId, name])
+}
+
+model AcademicSubject {
+  id            String       @id @default(uuid())
+  institutionId String
+  areaId        String
+  area          AcademicArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  name          String
+  code          String?
+  active        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  plans         ClassPlan[]
+
+  @@unique([institutionId, name])
+  @@index([areaId])
+}
+
+model AcademicYear {
+  id            String           @id @default(uuid())
+  institutionId String
+  institution   Institution      @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  startDate     DateTime
+  endDate       DateTime
+  active        Boolean          @default(true)
+  periods       AcademicPeriod[]
+  plans         ClassPlan[]
+
+  @@unique([institutionId, name])
+}
+
+model AcademicPeriod {
+  id             String       @id @default(uuid())
+  academicYearId String
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  name           String
+  sequence       Int
+  startDate      DateTime
+  endDate        DateTime
+  periodType     String       @default("TRIMESTER")
+  plans          ClassPlan[]
+
+  @@unique([academicYearId, sequence])
+}
+
+model AcademicGrade {
+  id            String        @id @default(uuid())
+  institutionId String
+  institution   Institution   @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  level         Int?
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  groups        CourseGroup[]
+  plans         ClassPlan[]
+
+  @@unique([institutionId, name])
+}
+
+model CourseGroup {
+  id            String        @id @default(uuid())
+  institutionId String
+  gradeId       String
+  grade         AcademicGrade @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  name          String
+  active        Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  plans         ClassPlan[]
+
+  @@unique([institutionId, gradeId, name])
+}
+
+model PlanCollaborator {
+  id        String    @id @default(uuid())
+  planId    String
+  plan      ClassPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  profileId String    @db.Uuid
+  profile   Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  role      String    @default("EDITOR")
+  createdAt DateTime  @default(now())
+
+  @@unique([planId, profileId])
+  @@index([profileId])
+}
+
+model PlanComment {
+  id         String    @id @default(uuid())
+  planId     String
+  plan       ClassPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  authorId   String    @db.Uuid
+  author     Profile   @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  sectionKey String?
+  body       String    @db.Text
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  @@index([planId, resolvedAt])
+}
+
+model PlanVersion {
+  id            String    @id @default(uuid())
+  planId        String
+  plan          ClassPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  institutionId String
+  versionNumber Int
+  snapshot      Json
+  reason        String?
+  createdById   String    @db.Uuid
+  createdBy     Profile   @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime  @default(now())
+
+  @@unique([planId, versionNumber])
+  @@index([institutionId, createdAt])
+}
+
+model Activity {
+  id                      String   @id @default(uuid())
+  sessionId               String
+  session                 Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  title                   String
+  description             String   @db.Text
+  classMoment             String
+  estimatedMinutes        Int?
+  groupingType            String?
+  resources               String?  @db.Text
+  pedagogicalPurpose      String?  @db.Text
+  expectedEvidence        String?  @db.Text
+  assessmentStrategy      String?  @db.Text
+  differentiationStrategy String?  @db.Text
+  ignatianElements        String[]
+  position                Int
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([sessionId, position])
+}
+
+model ActivityLog {
+  id            String      @id @default(uuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  actorId       String?     @db.Uuid
+  actor         Profile?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action        String
+  entityType    String
+  entityId      String
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+
+  @@index([institutionId, entityType, entityId, createdAt])
+}
+
+model PlanReview {
+  id            String    @id @default(uuid())
+  planId        String
+  plan          ClassPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  reviewerId    String    @db.Uuid
+  reviewer      Profile   @relation(fields: [reviewerId], references: [id], onDelete: Restrict)
+  versionNumber Int
+  decision      String    @default("PENDING")
+  observations  String?   @db.Text
+  createdAt     DateTime  @default(now())
+  decidedAt     DateTime?
+
+  @@index([reviewerId, decision])
+  @@index([planId, createdAt])
+}
+
+model PlanApproval {
+  id            String    @id @default(uuid())
+  planId        String
+  plan          ClassPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  approverId    String    @db.Uuid
+  approver      Profile   @relation(fields: [approverId], references: [id], onDelete: Restrict)
+  versionNumber Int
+  observations  String?   @db.Text
+  approvedAt    DateTime  @default(now())
+
+  @@index([planId, approvedAt])
+}
+
+model Rubric {
+  id            String      @id @default(uuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?     @db.Text
+  structure     Json
+  reusable      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  @@index([institutionId, reusable])
+}
+
+model AiRequest {
+  id            String      @id @default(uuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  profileId     String      @db.Uuid
+  profile       Profile     @relation(fields: [profileId], references: [id], onDelete: Restrict)
+  planId        String?
+  action        String
+  status        String
+  inputLength   Int         @default(0)
+  outputLength  Int         @default(0)
+  suggestion    Json?
+  acceptedAt    DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([institutionId, createdAt])
+  @@index([profileId, createdAt])
+}
+
+model Notification {
+  id            String      @id @default(uuid())
+  institutionId String
+  institution   Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  profileId     String      @db.Uuid
+  profile       Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  type          String
+  title         String
+  body          String?
+  entityType    String?
+  entityId      String?
+  readAt        DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([profileId, readAt, createdAt])
+}
+
+model SavedFilter {
+  id            String   @id @default(uuid())
+  institutionId String
+  profileId     String   @db.Uuid
+  profile       Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  name          String
+  filters       Json
+  createdAt     DateTime @default(now())
+
+  @@unique([institutionId, profileId, name])
+  @@index([profileId, createdAt])
+}
+
+model InstitutionInvitation {
+  id            String         @id @default(uuid())
+  institutionId String
+  institution   Institution    @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  username      String
+  fullName      String
+  role          MembershipRole @default(TEACHER)
+  tokenHash     String         @unique
+  expiresAt     DateTime
+  acceptedAt    DateTime?
+  invitedById   String         @db.Uuid
+  invitedBy     Profile        @relation("InvitationCreator", fields: [invitedById], references: [id], onDelete: Restrict)
+  createdAt     DateTime       @default(now())
+
+  @@unique([institutionId, username])
+  @@index([institutionId, expiresAt])
+}
+
+model EditingPresence {
+  id         String    @id @default(uuid())
+  planId     String
+  plan       ClassPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  profileId  String    @db.Uuid
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sectionKey String?
+  lastSeenAt DateTime  @default(now())
+
+  @@unique([planId, profileId])
+  @@index([planId, lastSeenAt])
+}
+
+model SectionLock {
+  id         String    @id @default(uuid())
+  planId     String
+  plan       ClassPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  profileId  String    @db.Uuid
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sectionKey String
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  @@unique([planId, sectionKey])
+  @@index([expiresAt])
+}
+
+model ActivityTemplate {
+  id                      String      @id @default(uuid())
+  institutionId           String
+  institution             Institution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+  createdById             String      @db.Uuid
+  createdBy               Profile     @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  title                   String
+  description             String      @db.Text
+  classMoment             String
+  estimatedMinutes        Int?
+  groupingType            String?
+  resources               String?     @db.Text
+  pedagogicalPurpose      String?     @db.Text
+  expectedEvidence        String?     @db.Text
+  assessmentStrategy      String?     @db.Text
+  differentiationStrategy String?     @db.Text
+  ignatianElements        String[]
+  active                  Boolean     @default(true)
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+
+  @@index([institutionId, active, updatedAt])
+}
+
+model PlanAttachment {
+  id          String    @id @default(uuid())
+  planId      String
+  plan        ClassPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  uploaderId  String    @db.Uuid
+  uploader    Profile   @relation(fields: [uploaderId], references: [id], onDelete: Restrict)
+  fileName    String
+  storagePath String    @unique
+  mimeType    String
+  sizeBytes   Int
+  category    String    @default("GENERAL")
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+
+  @@index([planId, category, createdAt])
+}
