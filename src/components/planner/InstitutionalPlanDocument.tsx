@@ -1,5 +1,6 @@
 import type { StructuredPlanContent } from "../../lib/institutional-format";
 import { planStatusLabel } from "../../lib/status-labels";
+import Image from "next/image";
 
 type DocumentPlan = Awaited<ReturnType<typeof import("../../lib/actions/structured-plan-actions").getStructuredPlan>>["plan"];
 
@@ -12,8 +13,8 @@ export default function InstitutionalPlanDocument({ plan }: { plan: DocumentPlan
     <article className="institutional-document mx-auto max-w-[8.5in] bg-white p-8 text-[11px] text-black">
       <table className="mb-4 w-full border-collapse">
         <tbody>
-          <tr><td rowSpan={2} className="w-1/4 border border-black p-3 text-center font-black">{plan.institution?.name || "INSTITUCIÓN"}</td><td className="border border-black p-2 text-center text-sm font-black">{format?.name || "FORMATO DE PLANEACIÓN DE CLASES"}</td><td className="w-1/5 border border-black p-2 font-bold">Código: {format?.formatCode || "MGF-03-R05"}</td></tr>
-          <tr><td className="border border-black p-2 text-center font-bold">GESTIÓN ACADÉMICA Y PEDAGÓGICA</td><td className="border border-black p-2 font-bold">Versión: {format?.version || "01"}</td></tr>
+          <tr><td rowSpan={2} className="w-[19%] border border-black p-2 text-center"><Image src="/branding/colegio-san-jose-logo.png" width={92} height={88} alt={plan.institution?.name || "Colegio San José"} className="mx-auto h-20 w-20 object-contain" /></td><td rowSpan={2} className="w-[56%] border border-black p-3 text-center text-base font-black">PLANEACIÓN</td><td className="w-[25%] border border-black bg-[#f2f2f2] p-2 text-center text-sm font-bold">Código:</td></tr>
+          <tr><td className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-black">{format?.formatCode || "MGF-03-R05"}</td></tr>
         </tbody>
       </table>
       <table className="mb-5 w-full border-collapse">

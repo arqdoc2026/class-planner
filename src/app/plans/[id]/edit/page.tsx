@@ -24,6 +24,7 @@ export default async function EditPlanPage({ params }: { params: Promise<{ id: s
     formatName: format?.name || "FORMATO DE PLANEACIÓN DE CLASES",
     formatCode: format?.formatCode || "MGF-03-R05",
     formatVersion: format?.version || "01",
+    elaborationDate: plan.createdAt.toISOString().slice(0, 10),
     expectedResults: (plan.expectedResults as StructuredPlanContent["expectedResults"] | null) || EMPTY_STRUCTURED_CONTENT.expectedResults,
     evaluationEvidence: (plan.evaluationEvidence as StructuredPlanContent["evaluationEvidence"] | null) || EMPTY_STRUCTURED_CONTENT.evaluationEvidence,
     finalReflection: (plan.finalReflection as StructuredPlanContent["finalReflection"] | null) || EMPTY_STRUCTURED_CONTENT.finalReflection,

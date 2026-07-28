@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { saveStructuredPlan, type StructuredSessionInput } from "../../lib/actions/structured-plan-actions";
 import type { StructuredPlanContent } from "../../lib/institutional-format";
 import StructuredSessionEditor from "./StructuredSessionEditor";
 import { heartbeatPlanPresence, lockPlanSection, unlockPlanSection } from "../../lib/actions/presence-actions";
-import { planStatusLabel } from "../../lib/status-labels";
 
 type InitialPlan = {
   id: string;
@@ -26,6 +26,7 @@ type InitialPlan = {
   formatName: string;
   formatCode: string;
   formatVersion: string;
+  elaborationDate: string;
   expectedResults: StructuredPlanContent["expectedResults"];
   evaluationEvidence: StructuredPlanContent["evaluationEvidence"];
   finalReflection: StructuredPlanContent["finalReflection"];
@@ -148,20 +149,23 @@ export default function StructuredPlanEditor({ initialPlan }: { initialPlan: Ini
 }
 
 function DocumentHeader({ plan, update, onFocus }: { plan: InitialPlan; update: <K extends keyof InitialPlan>(key: K, value: InitialPlan[K]) => void; onFocus: () => void }) {
+  const dates = plan.sessions.map((session) => session.plannedDate).filter(Boolean).sort();
   return <section id="document-header" onFocus={onFocus} className="mb-5 scroll-mt-28">
     <table className="w-full border-collapse">
       <tbody>
-        <tr><td rowSpan={2} className="w-1/4 border border-black p-3 text-center font-black">{plan.institutionName}</td><td className="border border-black p-2 text-center text-sm font-black">{plan.formatName}</td><td className="w-1/5 border border-black p-2 font-bold">Código: {plan.formatCode}</td></tr>
-        <tr><td className="border border-black p-2 text-center font-bold">GESTIÓN ACADÉMICA Y PEDAGÓGICA</td><td className="border border-black p-2 font-bold">Versión: {plan.formatVersion}</td></tr>
+        <tr>
+          <td rowSpan={2} className="w-[19%] border border-black p-2 text-center"><Image src="/branding/colegio-san-jose-logo.png" width={92} height={88} alt="Colegio San José" className="mx-auto h-20 w-20 object-contain" /></td>
+          <td rowSpan={2} className="w-[56%] border border-black p-3 text-center text-base font-black">PLANEACIÓN</td>
+          <td className="w-[25%] border border-black bg-[#f2f2f2] p-2 text-center text-sm font-bold">Código:</td>
+        </tr>
+        <tr><td className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-black">{plan.formatCode}</td></tr>
       </tbody>
     </table>
-    <table className="mt-3 w-full border-collapse">
+    <table className="w-full border-collapse">
       <tbody>
-        <HeaderRow label="Área" value={plan.area} onChange={(value) => update("area", value)} secondLabel="Asignatura" secondValue={plan.subject} onSecondChange={(value) => update("subject", value)} />
-        <HeaderRow label="Grado" value={plan.grade} onChange={(value) => update("grade", value)} secondLabel="Grupo" secondValue={plan.courseGroupName} readOnlySecond />
-        <HeaderRow label="Sede" value={plan.campusName} readOnly secondLabel="Año / periodo" secondValue={[plan.academicYearName, plan.academicPeriodName].filter(Boolean).join(" · ")} readOnlySecond />
-        <HeaderRow label="Profesor(es)" value={plan.teacherName} readOnly secondLabel="Estado" secondValue={planStatusLabel(plan.status)} readOnlySecond />
-        <tr><th className="border border-black bg-slate-100 p-2 text-left">Título de la unidad</th><td colSpan={3} className="border border-black p-0"><input value={plan.unitTitle} onChange={(event) => update("unitTitle", event.target.value)} className="w-full bg-transparent p-2 font-bold outline-none focus:bg-blue-50" /></td></tr>
+        <tr><th className="w-[19%] border border-black p-1 text-right">Área:</th><td colSpan={2} className="border border-black p-0"><input value={plan.area} onChange={(event) => update("area", event.target.value)} className="w-full bg-transparent p-1 outline-none focus:bg-blue-50" /></td><th className="border border-black p-1 text-left">Asignatura:</th><td colSpan={2} className="border border-black p-0"><input value={plan.subject} onChange={(event) => update("subject", event.target.value)} className="w-full bg-transparent p-1 outline-none focus:bg-blue-50" /></td></tr>
+        <tr><th className="border border-black p-1 text-right">Fecha</th><th className="border border-black p-1">Desde:</th><td className="border border-black p-1">{dates[0] || "—"}</td><th className="border border-black p-1">Hasta:</th><td className="border border-black p-1">{dates.at(-1) || "—"}</td><th className="border border-black p-1 text-center">Número de sesiones<br />{plan.sessions.length}</th></tr>
+        <tr><th className="border border-black p-1 text-right">Grado:</th><td className="border border-black p-0"><input value={plan.grade} onChange={(event) => update("grade", event.target.value)} className="w-full bg-transparent p-1 outline-none focus:bg-blue-50" /></td><th className="border border-black p-1">Trimestre / Semestre:</th><td className="border border-black p-1">{plan.academicPeriodName || "—"}</td><th className="border border-black p-1">Fecha de elaboración:<br />{plan.elaborationDate}</th><td className="border border-black p-1"><strong>Planeadas:</strong> {plan.sessions.length}<br /><strong>Completadas:</strong> {plan.sessions.filter((session) => session.status === "COMPLETED").length}</td></tr>
       </tbody>
     </table>
   </section>;
@@ -187,9 +191,4 @@ function Reflection({ value, onChange }: { value: StructuredPlanContent["finalRe
 
 function DocumentStage({ id, title, children, onFocus }: { id: string; title: string; children: React.ReactNode; onFocus: () => void }) {
   return <section id={id} onFocus={onFocus} className="mb-6 scroll-mt-28"><h2 className="border border-black bg-slate-300 p-2 text-center text-sm font-black">{title}</h2>{children}</section>;
-}
-
-function HeaderRow({ label, value, onChange, readOnly = false, secondLabel, secondValue, onSecondChange, readOnlySecond = false }: { label: string; value: string; onChange?: (value: string) => void; readOnly?: boolean; secondLabel: string; secondValue: string; onSecondChange?: (value: string) => void; readOnlySecond?: boolean }) {
-  const cell = (current: string, change?: (value: string) => void, locked = false) => locked ? <span className="block p-2">{current || "—"}</span> : <input value={current} onChange={(event) => change?.(event.target.value)} className="w-full bg-transparent p-2 outline-none focus:bg-blue-50" />;
-  return <tr><th className="w-[16%] border border-black bg-slate-100 p-2 text-left">{label}</th><td className="w-[34%] border border-black p-0">{cell(value, onChange, readOnly)}</td><th className="w-[16%] border border-black bg-slate-100 p-2 text-left">{secondLabel}</th><td className="w-[34%] border border-black p-0">{cell(secondValue, onSecondChange, readOnlySecond)}</td></tr>;
 }
