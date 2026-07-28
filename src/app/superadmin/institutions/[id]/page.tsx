@@ -59,10 +59,10 @@ export default async function InstitutionProfilePage({ params }: { params: Promi
         <SuperAdminCatalogManager
           institutionId={institution.id}
           data={{
-            campuses: institution.campuses.map(({ id, name }) => ({ id, name })),
-            areas: institution.areas.map(({ id, name, subjects }) => ({ id, name, subjects: subjects.map(({ id: subjectId, name: subjectName }) => ({ id: subjectId, name: subjectName })) })),
-            grades: institution.grades.map(({ id, name, groups }) => ({ id, name, groups: groups.map(({ id: groupId, name: groupName }) => ({ id: groupId, name: groupName })) })),
-            years: institution.years.map(({ id, name, periods }) => ({ id, name, periods: periods.map(({ id: periodId, name: periodName }) => ({ id: periodId, name: periodName })) })),
+            campuses: institution.campuses.map(({ id, name, code, active }) => ({ id, name, code, active })),
+            areas: institution.areas.map(({ id, name, code, active, subjects }) => ({ id, name, code, active, subjects: subjects.map(({ id: subjectId, name: subjectName, code: subjectCode, active: subjectActive, areaId }) => ({ id: subjectId, name: subjectName, code: subjectCode, active: subjectActive, areaId })) })),
+            grades: institution.grades.map(({ id, name, level, active, groups }) => ({ id, name, level, active, groups: groups.map(({ id: groupId, name: groupName, active: groupActive, gradeId }) => ({ id: groupId, name: groupName, active: groupActive, gradeId })) })),
+            years: institution.years.map(({ id, name, active, startDate, endDate, periods }) => ({ id, name, active, startDate: startDate.toISOString().slice(0, 10), endDate: endDate.toISOString().slice(0, 10), periods: periods.map(({ id: periodId, name: periodName, academicYearId, sequence, startDate: periodStart, endDate: periodEnd, periodType }) => ({ id: periodId, name: periodName, academicYearId, sequence, startDate: periodStart.toISOString().slice(0, 10), endDate: periodEnd.toISOString().slice(0, 10), periodType })) })),
           }}
         />
         <SuperAdminUserManager institutions={[managerInstitution]} currentUserId={superAdmin.id} />

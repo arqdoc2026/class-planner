@@ -119,6 +119,83 @@ export async function createPlatformCatalogEntry(input: {
   }
 }
 
+export async function updatePlatformCatalogEntry(input: {
+  institutionId: string;
+  kind: PlatformCatalogKind;
+  id: string;
+  values: Record<string, string>;
+}) {
+  const superAdmin = await requireSuperAdmin();
+  const institution = await prisma.institution.findFirst({
+    where: { id: input.institutionId, deletedAt: null },
+    select: { id: true, active: true },
+  });
+  if (!institution) return { success: false, error: "La institución no existe." };
+  if (!institution.active) return { success: false, error: "Activa la institución antes de modificar sus catálogos." };
+  const id = String(input.id || "").trim().slice(0, 100);
+  const text = (key: string, max = 200) => String(input.values[key] || "").trim().slice(0, max);
+  const name = text("name");
+  const active = input.values.active !== "false";
+  if (!id || !name) return { success: false, error: "El registro o su nombre no es válido." };
+
+  try {
+    let updated = false;
+    if (input.kind === "campus") {
+      updated = Boolean((await prisma.campus.updateMany({ where: { id, institutionId: institution.id }, data: { name, code: text("code", 50) || null, active } })).count);
+    } else if (input.kind === "area") {
+      updated = Boolean((await prisma.academicArea.updateMany({ where: { id, institutionId: institution.id }, data: { name, code: text("code", 50) || null, active } })).count);
+    } else if (input.kind === "subject") {
+      const area = await prisma.academicArea.findFirst({ where: { id: text("parentId", 100), institutionId: institution.id }, select: { id: true } });
+      if (!area) return { success: false, error: "Selecciona un área válida." };
+      updated = Boolean((await prisma.academicSubject.updateMany({ where: { id, institutionId: institution.id }, data: { name, code: text("code", 50) || null, areaId: area.id, active } })).count);
+    } else if (input.kind === "grade") {
+      const level = Number(input.values.level);
+      updated = Boolean((await prisma.academicGrade.updateMany({ where: { id, institutionId: institution.id }, data: { name, level: Number.isInteger(level) ? level : null, active } })).count);
+    } else if (input.kind === "group") {
+      const grade = await prisma.academicGrade.findFirst({ where: { id: text("parentId", 100), institutionId: institution.id }, select: { id: true } });
+      if (!grade) return { success: false, error: "Selecciona un grado válido." };
+      updated = Boolean((await prisma.courseGroup.updateMany({ where: { id, institutionId: institution.id }, data: { name, gradeId: grade.id, active } })).count);
+    } else if (input.kind === "year") {
+      const startDate = new Date(text("startDate", 20));
+      const endDate = new Date(text("endDate", 20));
+      if (Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf()) || startDate >= endDate) {
+        return { success: false, error: "Las fechas del año lectivo no son válidas." };
+      }
+      updated = Boolean((await prisma.academicYear.updateMany({ where: { id, institutionId: institution.id }, data: { name, startDate, endDate, active } })).count);
+    } else {
+      const year = await prisma.academicYear.findFirst({ where: { id: text("parentId", 100), institutionId: institution.id }, select: { id: true } });
+      const current = await prisma.academicPeriod.findFirst({ where: { id, academicYear: { institutionId: institution.id } }, select: { id: true } });
+      const startDate = new Date(text("startDate", 20));
+      const endDate = new Date(text("endDate", 20));
+      const sequence = Number(input.values.sequence);
+      if (!current || !year || !Number.isInteger(sequence) || sequence < 1 || Number.isNaN(startDate.valueOf()) || Number.isNaN(endDate.valueOf()) || startDate >= endDate) {
+        return { success: false, error: "El año, orden o las fechas del periodo no son válidos." };
+      }
+      const periodType = ["TRIMESTER", "SEMESTER", "PERIOD"].includes(input.values.periodType) ? input.values.periodType : "PERIOD";
+      await prisma.academicPeriod.update({ where: { id }, data: { academicYearId: year.id, name, sequence, startDate, endDate, periodType } });
+      updated = true;
+    }
+    if (!updated) return { success: false, error: "No se encontró el registro dentro de esta institución." };
+    await prisma.activityLog.create({
+      data: {
+        institutionId: institution.id,
+        actorId: superAdmin.id,
+        action: "CATALOG_ENTRY_UPDATED_BY_SUPERADMIN",
+        entityType: input.kind,
+        entityId: id,
+        metadata: { name, active },
+      },
+    });
+    revalidatePath(`/superadmin/institutions/${institution.id}`);
+    revalidatePath("/plans/new");
+    revalidatePath("/admin/institution");
+    return { success: true };
+  } catch (error) {
+    console.error("Error actualizando catálogo desde superadministración:", error);
+    return { success: false, error: "No se pudo actualizar. Comprueba fechas, relaciones y nombres duplicados." };
+  }
+}
+
 export async function createInstitutionUser(input: {
   institutionId: string;
   fullName: string;
