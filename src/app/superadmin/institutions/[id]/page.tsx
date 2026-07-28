@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import SuperAdminUserManager from "../../../../components/admin/SuperAdminUserManager";
+import LogoutButton from "../../../../components/auth/LogoutButton";
 import { getPlatformInstitution } from "../../../../lib/actions/platform-actions";
 
 export default async function InstitutionProfilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -31,7 +32,7 @@ export default async function InstitutionProfilePage({ params }: { params: Promi
             <h1 className="text-3xl font-black">{institution.name}</h1>
             <p className="mt-1 text-sm text-slate-400">{institution.slug}</p>
           </div>
-          <Link href="/superadmin" className="rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200 hover:bg-slate-900">Volver a instituciones</Link>
+          <div className="flex gap-2"><Link href="/superadmin" className="rounded-lg border border-slate-700 px-4 py-2 font-bold text-slate-200 hover:bg-slate-900">Volver a instituciones</Link><LogoutButton dark /></div>
         </header>
         <div className="grid gap-4 sm:grid-cols-3">
           <Metric label="Miembros" value={institution._count.memberships} />

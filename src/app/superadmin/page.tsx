@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LogoutButton from "../../components/auth/LogoutButton";
 import { createInstitution, getPlatformOverview, setInstitutionActive } from "../../lib/actions/platform-actions";
 
 export default async function SuperAdminPage() {
@@ -6,9 +7,10 @@ export default async function SuperAdminPage() {
   return (
     <main className="min-h-screen bg-slate-950 p-6 text-white md:p-10">
       <div className="mx-auto max-w-7xl space-y-8">
-        <header>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">Plataforma global</p>
-          <h1 className="text-3xl font-black">Superadministración</h1>
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div><p className="text-xs font-black uppercase tracking-widest text-slate-500">Plataforma global</p>
+          <h1 className="text-3xl font-black">Superadministración</h1></div>
+          <LogoutButton dark />
         </header>
         <div className="grid gap-4 md:grid-cols-4">
           {Object.entries(data.metrics).map(([name, value]) => <article key={name} className="rounded-2xl border border-slate-800 bg-slate-900 p-5"><p className="text-xs uppercase text-slate-500">{name}</p><strong className="text-4xl">{value}</strong></article>)}

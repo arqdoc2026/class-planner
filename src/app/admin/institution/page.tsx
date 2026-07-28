@@ -11,6 +11,7 @@ import {
   updateInstitutionAiSettings,
 } from "../../../lib/actions/institution-actions";
 import { requireInstitutionRole } from "../../../lib/auth";
+import LogoutButton from "../../../components/auth/LogoutButton";
 
 const inputClass = "rounded-lg border border-slate-300 px-3 py-2 text-sm";
 const buttonClass = "rounded-lg bg-slate-950 px-4 py-2 text-sm font-bold text-white";
@@ -26,7 +27,7 @@ export default async function InstitutionPage() {
             <p className="text-xs font-black uppercase tracking-widest text-slate-400">Administración institucional</p>
             <h1 className="text-3xl font-black text-slate-950">{data.institution.name}</h1>
           </div>
-          <Link href="/dashboard" className={buttonClass}>Volver al panel</Link>
+          <div className="flex gap-2"><Link href="/dashboard" className={buttonClass}>Volver al panel</Link><LogoutButton /></div>
         </header>
 
         <div className="grid gap-6 md:grid-cols-2">
