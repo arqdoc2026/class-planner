@@ -10,11 +10,11 @@ export default function InstitutionalPlanDocument({ plan }: { plan: DocumentPlan
   const format = plan.formatSnapshot as { formatCode?: string; version?: string; name?: string } | null;
   const sessionDates = plan.sessions.flatMap((session) => session.plannedDate ? [session.plannedDate] : []).sort((a, b) => a.valueOf() - b.valueOf());
   return (
-    <article className="institutional-document mx-auto max-w-[11in] bg-white p-8 text-[11px] text-black">
+    <article className="institutional-document mx-auto max-w-[11in] bg-white p-[0.5in] text-black">
       <table className="mb-5 w-full table-fixed border-collapse">
         <colgroup><col style={{ width: "20.53%" }} /><col style={{ width: "9.86%" }} /><col style={{ width: "2.3%" }} /><col style={{ width: "17.8%" }} /><col style={{ width: "1.82%" }} /><col style={{ width: "23.93%" }} /><col style={{ width: "9.91%" }} /><col style={{ width: "13.85%" }} /></colgroup>
         <tbody>
-          <tr><td rowSpan={5} className="border border-black p-2 text-center align-top"><Image src="/branding/colegio-san-jose-logo.png" width={92} height={88} alt={plan.institution?.name || "Colegio San José"} className="mx-auto h-20 w-20 object-contain" /></td><td rowSpan={2} colSpan={5} className="border border-black p-3 text-center text-base font-black">PLANEACIÓN</td><td colSpan={2} className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-bold">Código:</td></tr>
+          <tr><td rowSpan={5} className="border border-black p-0 text-center align-top"><Image src="/branding/colegio-san-jose-logo.png" width={120} height={107} alt={plan.institution?.name || "Colegio San José"} className="mx-auto h-[1.114in] w-[1.25in] object-contain" /></td><td rowSpan={2} colSpan={5} className="border border-black p-3 text-center text-base font-black">PLANEACIÓN</td><td colSpan={2} className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-bold">Código:</td></tr>
           <tr><td colSpan={2} className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-black">{format?.formatCode || "MGF-03-R05"}</td></tr>
           <tr><td colSpan={5} className="border border-black p-1"><strong>Área:</strong> {plan.area || "—"}</td><td colSpan={2} className="border border-black p-1"><strong>Asignatura:</strong> {plan.subject || "—"}</td></tr>
           <tr><th className="border border-black p-1">Fecha</th><td colSpan={3} className="border border-black p-1"><strong>Desde:</strong> {sessionDates[0]?.toLocaleDateString("es-CO") || "—"}</td><td className="border border-black p-1"><strong>Hasta:</strong> {sessionDates.at(-1)?.toLocaleDateString("es-CO") || "—"}</td><td colSpan={2} className="border border-black p-1 text-center font-bold">Número de sesiones<br />{plan.sessions.length}</td></tr>
@@ -26,6 +26,7 @@ export default function InstitutionalPlanDocument({ plan }: { plan: DocumentPlan
       <PrintEvidence plan={plan} evidence={evidence} />
       <PrintSessions plan={plan} />
       <PrintReflection plan={plan} reflection={reflection} />
+      <p className="mt-2 text-right text-xs">V-21- 11/2025</p>
     </article>
   );
 }
@@ -81,5 +82,10 @@ function PrintReflection({ plan, reflection }: { plan: DocumentPlan; reflection:
     ["¿Qué funcionó y qué no funcionó?", [reflection?.whatWorked, reflection?.whatDidNotWork].filter(Boolean).join("\n\n")],
     ["Otras observaciones", reflection?.otherObservations || plan.otherObservations],
   ];
-  return <section className="mb-6 break-inside-avoid"><table className="w-full table-fixed border-collapse"><tbody><tr><th colSpan={4} className="border border-black bg-[#e0e0e0] p-2 text-center text-sm">Etapa 4 – Evaluar y reflexionar</th></tr><tr>{cells.map(([prompt], index) => <td key={index} className="h-24 border border-black p-2 text-center align-top">{prompt}</td>)}</tr><tr>{cells.map(([, text], index) => <td key={index} className="h-20 border border-black p-2 align-top whitespace-pre-wrap">{text || "—"}</td>)}</tr><tr><td colSpan={2} className="border border-black p-2">Elaborado por:<br />{plan.teacherName || "—"}</td><td colSpan={2} className="border border-black p-2">Aprobado:<br /><br />________________________<br />Coordinador/a de área<br />Fecha de aprobación: {plan.approvalDate?.toLocaleDateString("es-CO") || "—"}</td></tr></tbody></table></section>;
+  return <section className="mb-6 break-inside-avoid"><table className="w-full table-fixed border-collapse"><colgroup><col style={{ width: "26.72%" }} /><col style={{ width: "18.99%" }} /><col style={{ width: "7.79%" }} /><col style={{ width: "22.81%" }} /><col style={{ width: "23.69%" }} /></colgroup><tbody>
+    <tr><th colSpan={5} className="h-[35px] border border-black bg-[#e0e0e0] p-2 text-center text-sm">Etapa 4 – Evaluar y reflexionar</th></tr>
+    <tr><td className="h-[72px] border border-black p-2 text-center align-top">{cells[0][0]}</td><td colSpan={2} className="border border-black p-2 text-center align-top">{cells[1][0]}</td><td className="border border-black p-2 text-center align-top">{cells[2][0]}</td><td className="border border-black p-2 text-center align-top">{cells[3][0]}</td></tr>
+    <tr><td className="h-[28px] border border-black p-2 align-top whitespace-pre-wrap">{cells[0][1] || "—"}</td><td colSpan={2} className="border border-black p-2 align-top whitespace-pre-wrap">{cells[1][1] || "—"}</td><td className="border border-black p-2 align-top whitespace-pre-wrap">{cells[2][1] || "—"}</td><td className="border border-black p-2 align-top whitespace-pre-wrap">{cells[3][1] || "—"}</td></tr>
+    <tr><td colSpan={2} className="border border-black p-2">Elaborado por:<br />{plan.teacherName || "—"}</td><td colSpan={3} className="border border-black p-2">Aprobado:<br /><br />________________________<br />Coordinador/a de área<br />Fecha de aprobación: {plan.approvalDate?.toLocaleDateString("es-CO") || "—"}</td></tr>
+  </tbody></table></section>;
 }

@@ -125,7 +125,7 @@ export default function StructuredPlanEditor({ initialPlan }: { initialPlan: Ini
         </aside>
         <main className="min-w-0">
           {lockWarning && <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm font-bold text-amber-800">{lockWarning} Puedes consultar, pero evita sobrescribir contenido.</p>}
-          <article className="institutional-editor mx-auto min-h-[8.5in] w-full max-w-[11in] bg-white p-5 text-[11px] text-black shadow-xl md:p-8">
+          <article className="institutional-editor mx-auto min-h-[8.5in] w-full max-w-[11in] bg-white p-[0.5in] text-black shadow-xl">
             <DocumentHeader plan={plan} update={update} onFocus={() => setActiveSection("document-header")} />
             <DocumentStage id="expected-results" title="Etapa 1: Resultados esperados" onFocus={() => setActiveSection("expected-results")}>
               <Expected unitTitle={plan.unitTitle} onTitleChange={(value) => update("unitTitle", value)} value={plan.expectedResults} onChange={(value) => update("expectedResults", value)} />
@@ -139,8 +139,9 @@ export default function StructuredPlanEditor({ initialPlan }: { initialPlan: Ini
             </DocumentStage>
             <DocumentStage id="reflection" title="Etapa 4: Evaluar y reflexionar" onFocus={() => setActiveSection("reflection")}>
               <Reflection value={plan.finalReflection} onChange={(value) => update("finalReflection", value)} />
-              <div className="mt-10 grid grid-cols-2 gap-16 text-center"><div className="border-t border-black pt-2">Elaborado por<br />{plan.teacherName || "Profesor responsable"}</div><div className="border-t border-black pt-2">Aprobado por<br />{plan.coordinatorName || "Coordinación académica"}</div></div>
+              <div className="grid grid-cols-[45.71%_54.29%]"><div className="min-h-20 border-x border-b border-black p-2"><strong>Elaborado por:</strong><br />{plan.teacherName || "Profesor responsable"}</div><div className="min-h-20 border-r border-b border-black p-2 text-center"><strong className="block text-left">Aprobado:</strong><br />________________________<br />Coordinador/a de área<br />Fecha de aprobación:</div></div>
             </DocumentStage>
+            <p className="mt-2 text-right text-xs">V-21- 11/2025</p>
           </article>
         </main>
       </div>
@@ -155,7 +156,7 @@ function DocumentHeader({ plan, update, onFocus }: { plan: InitialPlan; update: 
       <colgroup><col style={{ width: "20.53%" }} /><col style={{ width: "9.86%" }} /><col style={{ width: "2.3%" }} /><col style={{ width: "17.8%" }} /><col style={{ width: "1.82%" }} /><col style={{ width: "23.93%" }} /><col style={{ width: "9.91%" }} /><col style={{ width: "13.85%" }} /></colgroup>
       <tbody>
         <tr>
-          <td rowSpan={5} className="border border-black p-2 text-center align-top"><Image src="/branding/colegio-san-jose-logo.png" width={92} height={88} alt="Colegio San José" className="mx-auto h-20 w-20 object-contain" /></td>
+          <td rowSpan={5} className="border border-black p-0 text-center align-top"><Image src="/branding/colegio-san-jose-logo.png" width={120} height={107} alt="Colegio San José" className="mx-auto h-[1.114in] w-[1.25in] object-contain" /></td>
           <td rowSpan={2} colSpan={5} className="border border-black p-3 text-center text-base font-black">PLANEACIÓN</td>
           <td colSpan={2} className="border border-black bg-[#f2f2f2] p-2 text-center text-sm font-bold">Código:</td>
         </tr>
@@ -224,7 +225,7 @@ function TextArea({ label, value, onChange }: { label: string; value: string; on
 
 function Reflection({ value, onChange }: { value: StructuredPlanContent["finalReflection"]; onChange: (value: StructuredPlanContent["finalReflection"]) => void }) {
   return <div className="border-x border-b border-black">
-    <div className="grid grid-cols-4">
+    <div className="grid grid-cols-[26.72%_26.78%_22.81%_23.69%]">
       <ReflectionCell prompt="¿De qué manera se alinean los objetivos de aprendizaje, las evaluaciones de desempeño y las actividades de instrucción para crear un proceso de aprendizaje cohesivo y significativo?" value={value.alignment} onChange={(text) => onChange({ ...value, alignment: text })} />
       <ReflectionCell prompt="¿Qué ajustes intencionados se hicieron al contenido del currículo, las prácticas de instrucción y/o el entorno para satisfacer las necesidades y diversidades de aprendizaje?" value={value.contentAdjustments} onChange={(text) => onChange({ ...value, contentAdjustments: text })} />
       <ReflectionCell prompt="¿Qué funcionó y qué no funcionó?" value={value.whatWorked} onChange={(text) => onChange({ ...value, whatWorked: text })} />
